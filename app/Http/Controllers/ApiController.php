@@ -4857,6 +4857,7 @@ class ApiController extends Controller {
                     $responce['status'] = 1;
                     $responce['max_people'] = $TicketingData->max_people;
                     $responce['slots'] = $TicketingData->slots;
+                    $responce['is_special_ticket'] = $request->ticketId == 71;
                 } else {
                     $responce['status'] = 0;
                     $responce['message'] = 'Enter valid check-in and check-out date';
