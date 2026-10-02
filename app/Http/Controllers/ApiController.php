@@ -3545,9 +3545,9 @@ class ApiController extends Controller {
             if ($user->access_type == 'agent') {
                 $OrderMasterQuery->where('created_at', '>=', $this->ecoStartDate);
             }
-            $totalData = $OrderMasterQuery->count();
-            $OrderMaster = $OrderMasterQuery->where('service_type', '<>', 'flight')->orderBy($order_column, $order_dir)
-                    ->skip($skip)
+            $orderTotal = clone $OrderMasterQuery->where('service_type', '<>', 'flight')->orderBy($order_column, $order_dir);
+            $totalData = $orderTotal->get()->count();
+            $OrderMaster = $OrderMasterQuery->skip($skip)
                     ->take($take)
                     ->get();
             if (!empty($OrderMaster)) {
@@ -4857,7 +4857,7 @@ class ApiController extends Controller {
                     $responce['status'] = 1;
                     $responce['max_people'] = $TicketingData->max_people;
                     $responce['slots'] = $TicketingData->slots;
-                    $responce['is_special_ticket'] = $request->ticketId == 71;
+                    $responce['is_special_ticket'] = $request->ticketId === 71;
                 } else {
                     $responce['status'] = 0;
                     $responce['message'] = 'Enter valid check-in and check-out date';
@@ -6828,13 +6828,13 @@ class ApiController extends Controller {
                                     $count = (int)$count->where('end_time', $TicketBookingData->end_time)->get()->count();
                                     if(($count + count($countArray)) > 3){
                                         $responce['status'] = 0;
-                                        $responce['message'] = "No tickets available. Please change date or time slot and try again.";
+                                        $responce['message'] = "The tickets reserved for Odisha have now reached full capacity. We appreciate your interest and encourage you to explore other available booking options.";
                                         return response()->json($responce);
                                     }
                                 }else{
                                     if(count($countArray) > 3){
                                         $responce['status'] = 0;
-                                        $responce['message'] = "No tickets available. Please change date or time slot and try again.";
+                                        $responce['message'] = "The tickets reserved for Odisha have now reached full capacity. We appreciate your interest and encourage you to explore other available booking options.";
                                         return response()->json($responce);
                                     }
                                 }

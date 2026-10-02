@@ -659,7 +659,8 @@ class AirTravelInventoryController extends Controller
      * Get Confirm Passenger Listi
      */
 
-    public function getSeatPassengerList(Request $request){
+    public function getSeatPassengerList(Request $request)
+    {
         $validated = $request->validate([
             'schedule_id' => 'required|integer',
             'date'        => 'required|date',
@@ -668,79 +669,13 @@ class AirTravelInventoryController extends Controller
         $scheduleId = (int) $validated['schedule_id'];
         $date       = $validated['date'];
 
-        $passengerDetails = DB::table('passengers as p')
-            ->leftJoin('flight_schedule as fs','fs.id','=','p.schedule_id')
-            ->leftJoin('flight_master as fm','fm.id','=','fs.flight_id')
-            ->leftJoin('airport_master as from_airport','from_airport.id','=','fs.source_airport_id')
-            ->leftJoin('airport_master as to_airport','to_airport.id','=','fs.destination_airport_id')
-            ->leftJoin('order_masters as om','om.order_id','=','p.booking_id')
-            ->select(['fm.flight_number',
-                DB::raw("'$date' as journey_date"),
-                DB::raw("CONCAT(from_airport.city_name,' (',from_airport.airport_code,')') as from_airport"),
-                DB::raw("CONCAT(to_airport.city_name,' (',to_airport.airport_code,')') as to_airport"),
-                'p.booking_id',
-                DB::raw("'CONFIRM' as booking_status"),
-                DB::raw("COALESCE(om.payment_status,'SUCCESS') as payment_status"),
-                'p.passenger_type',
-                DB::raw("
-                    TRIM(
-                        CONCAT(
-                            COALESCE(p.first_name, ''),
-                            ' ',
-                            COALESCE(p.last_name, '')
-                        )
-                    ) AS Passanger_name
-                "),
-                'p.assistance_id',
-                'om.transaction_id',
-                'p.email',
-                'p.phone',
-                'p.gender',
-                'fs.departure_time',
-                'fs.arrival_time',
-                'fm.airline_code',
-                'fm.operator_name',
-            ])
-            ->where('p.schedule_id', $scheduleId)
-            ->get();
-
-        $assistanceIds = [];
-        foreach ($passengerDetails as $passenger) {
-            if (!empty($passenger->assistance_id)) {
-                $ids = explode(',', $passenger->assistance_id);
-                foreach ($ids as $id) {
-                    $id = trim($id);
-                    if ($id !== '' && is_numeric($id)) {
-                        $assistanceIds[] = (int) $id;
-                    }
-                }
-            }
-        }
-
-        $assistanceIds = array_values(
-            array_unique($assistanceIds)
+        $passengerDetails = DB::select(
+            'CALL sp_get_flight_passenger(?, ?)',
+            [
+                $scheduleId,
+                $date
+            ]
         );
-        $assistanceMap = [];
-        if (!empty($assistanceIds)) {
-            $assistanceMap = DB::table('assistance_types')
-                ->whereIn('id', $assistanceIds)
-                ->pluck('assistance_name', 'id')
-                ->toArray();
-        }
-
-        foreach ($passengerDetails as $passenger) {
-            $assistanceNames = [];
-            if (!empty($passenger->assistance_id)) {
-                $ids = explode(',', $passenger->assistance_id);
-                foreach ($ids as $id) {
-                    $id = trim($id);
-                    if ($id !== '' && is_numeric($id) && isset($assistanceMap[(int) $id])) {
-                        $assistanceNames[] = $assistanceMap[(int) $id];
-                    }
-                }
-            }
-            $passenger->assistance = implode(', ', $assistanceNames);
-        }
 
         return response()->json([
             'status' => true,
@@ -748,12 +683,11 @@ class AirTravelInventoryController extends Controller
         ]);
     }
 
-
     /**
      * Download Confirm Passenger List
      */
-
-    public function downloadPassengersList(Request $request){
+    public function downloadPassengersList(Request $request)
+    {
         $validated = $request->validate([
             'schedule_id' => 'required|integer',
             'date'        => 'required|date',
@@ -762,65 +696,9 @@ class AirTravelInventoryController extends Controller
         $scheduleId = (int) $validated['schedule_id'];
         $date       = $validated['date'];
 
-        // Get flight schedule details
-        $flight = DB::table('flight_schedule as fs')
-            ->join('flight_master as fm', 'fm.id', '=', 'fs.flight_id')
-            ->leftJoin(
-                'airport_master as from_airport',
-                'from_airport.id',
-                '=',
-                'fs.source_airport_id'
-            )
-            ->leftJoin(
-                'airport_master as to_airport',
-                'to_airport.id',
-                '=',
-                'fs.destination_airport_id'
-            )
-            ->where('fs.id', $scheduleId)
-            ->select([
-                'fs.id as schedule_id',
-                'fs.flight_id',
-                'fm.flight_number',
-                'from_airport.city_name as from_city',
-                'from_airport.airport_code as from_code',
-                'to_airport.city_name as to_city',
-                'to_airport.airport_code as to_code',
-            ])
-            ->first();
-
-        if (!$flight) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Flight schedule not found.',
-            ], 404);
-        }
-
-        // Get passengers
-        $passengers = DB::table('passengers as p')
-            ->leftJoin(
-                'order_masters as om',
-                'om.order_id',
-                '=',
-                'p.booking_id'
-            )
-            ->where('p.schedule_id', $scheduleId)
-            ->select([
-                'p.id',
-                'p.booking_id',
-                'p.schedule_id',
-                'p.first_name',
-                'p.last_name',
-                'p.passenger_type',
-                'p.journey_type',
-                'p.assistance_id',
-                'p.gender',
-                'om.transaction_id',
-                'om.payment_status',
-            ])
-            ->orderBy('p.booking_id', 'asc')
-            ->orderBy('p.id', 'asc')
-            ->get();
+        $passengers = collect(
+            DB::select('CALL sp_get_flight_passenger(?, ?)',[$scheduleId,$date])
+        );
 
         if ($passengers->isEmpty()) {
             return response()->json([
@@ -828,37 +706,14 @@ class AirTravelInventoryController extends Controller
                 'message' => 'No passenger records found for this flight schedule.',
             ], 404);
         }
-        $assistanceIds = [];
-        foreach ($passengers as $passenger) {
-            if (!empty($passenger->assistance_id)) {
-                $ids = explode(',', $passenger->assistance_id);
-                foreach ($ids as $id) {
-                    $id = trim($id);
-                    if ($id !== '' && is_numeric($id)) {
-                        $assistanceIds[] = (int) $id;
-                    }
-                }
-            }
-        }
-        $assistanceIds = array_values(array_unique($assistanceIds));
-        $assistanceMap = [];
-        if (!empty($assistanceIds)) {
-            $assistanceMap = DB::table('assistance_types')
-                ->whereIn('id', $assistanceIds)
-                ->pluck('assistance_name', 'id')
-                ->toArray();
-        }
-        $safeFlightNumber = preg_replace(
-            '/[^A-Za-z0-9_-]/',
-            '_',
-            $flight->flight_number ?? 'flight'
-        );
 
-        $filename = 'passenger-list-' . $safeFlightNumber . '-' . $date . '.csv';
+        $flightNumber = $passengers->first()->{'Flight Number'} ?? 'flight';
+        $safeFlightNumber = preg_replace('/[^A-Za-z0-9_-]/','_', $flightNumber);
+        $filename = 'passenger-list-' . $safeFlightNumber . '-' .$date .'.csv';
 
-        // Generate CSV
-        $callback = function () use ($passengers,$flight,$date,$assistanceMap) {
+        $callback = function () use ($passengers) {
             $file = fopen('php://output', 'w');
+
             fputcsv($file, [
                 'Sl.No',
                 'Flight Number',
@@ -874,55 +729,40 @@ class AirTravelInventoryController extends Controller
                 'Transaction ID',
             ]);
 
-            $from = trim(($flight->from_city ?? '') .' (' .($flight->from_code ?? '') .')');
-            $to = trim(($flight->to_city ?? '') .' (' .($flight->to_code ?? '') .')');
-
             $serial = 1;
 
             foreach ($passengers as $passenger) {
-                $passengerName = trim(($passenger->first_name ?? '') .' ' .($passenger->last_name ?? ''));
-                $assistanceNames = [];
-                if (!empty($passenger->assistance_id)) {
-                    $ids = explode(',', $passenger->assistance_id);
-                    foreach ($ids as $id) {
-                        $id = trim($id);
-                        if ($id !== '' && is_numeric($id) && isset($assistanceMap[(int) $id])) {
-                            $assistanceNames[] = $assistanceMap[(int) $id];
-                        }
-                    }
-                }
-
-                // Convert array of names into comma-separated string
-                $passenger->assistance = implode(', ', $assistanceNames);
-                $assistance = implode(', ',$assistanceNames);
 
                 fputcsv($file, [
                     $serial++,
-                    $flight->flight_number ?? '',
-                    $date,
-                    $from,
-                    $to,
-                    'CONFIRM',
-                    strtoupper($passenger->payment_status ?? 'SUCCESS'),
-                    $passenger->passenger_type ?? '',
-                    $passengerName,
-                    strtoupper($passenger->gender ?? '') === 'M' ? 'Male' : (strtoupper($passenger->gender ?? '') === 'F' ? 'Female' : 'N/A'),
-                    $assistance,
-                    $passenger->transaction_id ?? '',
+                    $passenger->{'Flight Number'} ?? '',
+                    $passenger->{'Journey Date'} ?? '',
+                    $passenger->{'From'} ?? '',
+                    $passenger->{'To'} ?? '',
+                    $passenger->{'Booking Status'} ?? '',
+                    $passenger->{'Payment Status'} ?? '',
+                    $passenger->{'Passenger Type'} ?? '',
+                    $passenger->{'Passenger Name'} ?? '',
+                    $passenger->{'Gender'} ?? '',
+                    $passenger->{'Assistance'} ?? '',
+                    $passenger->{'Transaction ID'} ?? '',
                 ]);
             }
+
             fclose($file);
         };
 
-        // Download CSV
-        return response()->stream($callback, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            'Cache-Control'       => 'no-cache, no-store, must-revalidate',
-            'Pragma'              => 'no-cache',
-            'Expires'             => '0',
-        ]);
+        return response()->stream($callback,200,
+            [
+                'Content-Type' =>'text/csv; charset=UTF-8',
+                'Content-Disposition' =>'attachment; filename="' . $filename . '"',
+                'Cache-Control' =>'no-cache, no-store, must-revalidate',
+                'Pragma' =>'no-cache',
+                'Expires' =>'0',
+            ]
+        );
     }
+
 
 
     /**

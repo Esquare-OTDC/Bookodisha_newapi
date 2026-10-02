@@ -33,5 +33,7 @@ Route::get('seat-update', 'Air\AirTravelInventoryController@seatUpdate')->name('
 Route::post('update-seat-capacity','Air\AirTravelInventoryController@updateSeatCapacity')->name('update-seat-capacity');
 
 
-
-
+// Flight Orders 
+Route::get('flight-orders', 'Air\AirTravelController@flightOrders')->name('flight-orders');
+Route::post('get-flight-orders', 'Air\AirTravelController@getFlightOrders')->name('get-flight-orders');
+Route::post('flight-oprsn', 'Air\AirTravelController@flightOprsn')->name('flight-oprsn');

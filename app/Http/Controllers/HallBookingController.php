@@ -2153,11 +2153,6 @@ class HallBookingController extends Controller
                         'file_path' => asset($fileName)
                     ]);
                 } catch (\Throwable $e) {
-                    \Log::error('Hall Availability With Booked Export Error', [
-                        'message' => $e->getMessage(),
-                        'file' => $e->getFile(),
-                        'line' => $e->getLine()
-                    ]);
                     return response()->json([
                         'status' => 0,
                         'message' => $e->getMessage()
@@ -2803,25 +2798,6 @@ class HallBookingController extends Controller
                         'file_path' => asset($fileName)
                     ]);
                 } catch (\Throwable $e) {
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Log Error
-                    |--------------------------------------------------------------------------
-                    */
-
-                    \Log::error('Export All Hall Availability Error', [
-                        'message' => $e->getMessage(),
-                        'file' => $e->getFile(),
-                        'line' => $e->getLine()
-                    ]);
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Error Response
-                    |--------------------------------------------------------------------------
-                    */
-
                     return response()->json([
                         'status' => 0,
                         'message' => $e->getMessage()
@@ -4612,10 +4588,7 @@ class HallBookingController extends Controller
             ->orderBy('property_name', 'asc')
             ->pluck('property_name', 'id');
 
-        $CountryData = Country::orderBy(
-            'name',
-            'asc'
-        )->pluck('name', 'id');
+        $CountryData = Country::orderBy('name','asc')->pluck('name', 'id');
 
         $adminUser = in_array($user->access_type,['admin', 'superadmin']) ? 1 : 0;
 
@@ -4769,7 +4742,7 @@ class HallBookingController extends Controller
         $propertyId = (int) $request->property_id;
         $hallId =   (int) $request->hall_id;
         $requestedSlot = strtoupper(trim((string) $request->slot_type));
-
+        $bookFrom = strtolower(trim($request->book_from ?? 'live'));
 
         $property = HallProperty::where('id',$propertyId)
             ->where('is_deleted',0)
@@ -4798,8 +4771,13 @@ class HallBookingController extends Controller
                 ->withInput();
         }
 
+        $slotType = strtoupper($request->slot_type);
+        if (in_array($slotType, ['FIRST_HALF', 'SECOND_HALF'])) {
+            $slotType = 'HALF_DAY';
+        }
+
         $slot = DB::table('m_slot')
-            ->where('slot',strtoupper($request->slot_type))
+            ->where('slot',$slotType)
             ->where('hall_id',$hallId)
             ->where('status','1')
             ->where('is_deleted','0')
@@ -4807,7 +4785,7 @@ class HallBookingController extends Controller
 
         if (empty($slot)) {
             $slot = DB::table('m_slot')
-                ->where('booking_type',strtoupper($request->slot_type))
+                ->where('booking_type',$slotType)
                 ->where('hall_id',$hallId)
                 ->where('status','1')
                 ->where('is_deleted','0')
@@ -4816,23 +4794,6 @@ class HallBookingController extends Controller
 
         if (empty($slot)) {
             Session::flash('failure','Selected slot was not found.');
-            return redirect()
-                ->route('offline-hall-order')
-                ->withInput();
-        }
-
-        $masterSlotType = strtoupper(str_replace([' ', '-'],'_',(string) ($slot->slot ?? $slot->booking_type ?? '')));
-
-        if ($requestedSlot === 'FULL_DAY' && $masterSlotType !== 'FULL_DAY') {
-
-            Session::flash('failure','Invalid Full Day slot selected.');
-            return redirect()
-                ->route('offline-hall-order')
-                ->withInput();
-        }
-
-        if (in_array($requestedSlot,['FIRST_HALF','SECOND_HALF'],true) && $masterSlotType !== 'HALF_DAY') {
-            Session::flash('failure','Invalid Half Day slot selected.');
             return redirect()
                 ->route('offline-hall-order')
                 ->withInput();
@@ -5007,91 +4968,150 @@ class HallBookingController extends Controller
             $orderMaster->request_from ='web';
 
             $txn_id = "TXN". time() . rand(10000, 99999999);
+            $orderMaster->transaction_id =$txn_id ;
+          
+            $liveInventory = null;
+            $blockedInventory = null;
 
-            $liveInventory = DB::table('t_hall_inventory')
-                    ->where('hall_id',$hallId)
-                    ->whereDate('inventory_date',$bookingDate)
+            if ($bookFrom === 'live') {
+
+                $liveInventory = DB::table('t_hall_inventory')
+                    ->where('hall_id', $hallId)
+                    ->whereDate('inventory_date', $bookingDate)
                     ->lockForUpdate()
                     ->first();
 
-            if (!$liveInventory) {
-                throw new \RuntimeException('Live Hall inventory was not found for ' .
-                    Carbon::parse(
-                        $bookingDate
-                    )->format('d M Y') .
-                    '.'
-                );
-            }
-            $blockedInventory = DB::table('t_blocked_hall_inventory')
-                ->where('hall_id',$hallId)
-                ->whereDate('block_date',$bookingDate)
-                ->lockForUpdate()
-                ->first();
-            if($request->book_from == 'blocked'){
-                if (!$blockedInventory) {
-                    throw new \RuntimeException('Blocked Hall inventory was not found for ' .
-                        Carbon::parse(
-                            $bookingDate
-                        )->format('d M Y') .
+                if (!$liveInventory) {
+
+                    throw new \RuntimeException(
+                        'Live Hall inventory was not found for ' .
+                        Carbon::parse($bookingDate)->format('d M Y') .
                         '.'
+                    );
+                }
+
+                if ($requestedSlot === 'FULL_DAY') {
+
+                    if ((int) $liveInventory->first_half_available !== 0 || (int) $liveInventory->second_half_available !== 0) {
+                        throw new \RuntimeException(
+                            'Full Day is not available for ' .
+                            Carbon::parse($bookingDate)->format('d M Y') .
+                            '.'
+                        );
+                    }
+
+                } elseif ($requestedSlot === 'FIRST_HALF') {
+
+                    if ((int) $liveInventory->first_half_available !== 0) {
+
+                        throw new \RuntimeException(
+                            'First Half is not available for ' .
+                            Carbon::parse($bookingDate)->format('d M Y') .
+                            '.'
+                        );
+                    }
+
+                } elseif ($requestedSlot === 'SECOND_HALF') {
+
+                    if ((int) $liveInventory->second_half_available !== 0) {
+
+                        throw new \RuntimeException(
+                            'Second Half is not available for ' .
+                            Carbon::parse($bookingDate)->format('d M Y') .
+                            '.'
+                        );
+                    }
+
+                } else {
+
+                    throw new \RuntimeException(
+                        'Invalid Hall slot type.'
+                    );
+                }
+            }
+
+            elseif ($bookFrom === 'blocked') {
+
+                $blockedInventory = DB::table('t_blocked_hall_inventory')
+                    ->where('hall_id', $hallId)
+                    ->whereDate('block_date', $bookingDate)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$blockedInventory) {
+
+                    throw new \RuntimeException(
+                        'Blocked Hall inventory was not found for ' .
+                        Carbon::parse($bookingDate)->format('d M Y') .
+                        '.'
+                    );
+                }
+
+                if ($requestedSlot === 'FULL_DAY') {
+                    if ((int) $blockedInventory->first_half_available !== 0 ||(int) $blockedInventory->second_half_available !== 0) {
+                        throw new \RuntimeException(
+                            'Full Day is not available in blocked inventory for ' .
+                            Carbon::parse($bookingDate)->format('d M Y') .
+                            '.'
+                        );
+                    }
+
+                } elseif ($requestedSlot === 'FIRST_HALF') {
+                    if ((int) $blockedInventory->first_half_available !== 0) {
+                        throw new \RuntimeException(
+                            'First Half is not available in blocked inventory for ' .
+                            Carbon::parse($bookingDate)->format('d M Y') .
+                            '.'
+                        );
+                    }
+
+                } elseif ($requestedSlot === 'SECOND_HALF') {
+
+                    if ((int) $blockedInventory->second_half_available !== 0) {
+
+                        throw new \RuntimeException(
+                            'Second Half is not available in blocked inventory for ' .
+                            Carbon::parse($bookingDate)->format('d M Y') .
+                            '.'
+                        );
+                    }
+
+                } else {
+
+                    throw new \RuntimeException(
+                        'Invalid Hall slot type.'
                     );
                 }
             }
 
             $inventoryUpdate = ['updated_at' => now()];
-            $blockedInventoryUpdate = ['updated_at' => now()];
-            if ($requestedSlot === 'FULL_DAY') {
-                if ((int) $liveInventory->first_half_available !== 0 || (int) $liveInventory->second_half_available !== 0) {
+            $blockedInventoryUpdate = ['updated_at' => now(),'block_reason' => 'Blocked from offline hall orders'];
 
-                    throw new \RuntimeException(
-                        'Full Day is not available for ' .
-                        Carbon::parse(
-                            $bookingDate
-                        )->format('d M Y') .
-                        '.'
-                    );
-                }
+
+            if ($requestedSlot === 'FULL_DAY') {
 
                 $inventoryUpdate['inventory_slot_type'] = 1;
-                $inventoryUpdate['first_half_available'] = 1;
-                $inventoryUpdate['second_half_available'] = 1;
-                $blockedInventoryUpdate['first_half_available'] = 1;
-                $blockedInventoryUpdate['second_half_available'] = 1;
-            }elseif ($requestedSlot === 'FIRST_HALF') {
-                if ((int)$liveInventory->first_half_available !== 0) {
+                $inventoryUpdate['first_half_available'] = '1';
+                $inventoryUpdate['second_half_available'] = '1';
 
-                    throw new \RuntimeException(
-                        'First Half is not available for ' .
-                        Carbon::parse(
-                            $bookingDate
-                        )->format('d M Y') .
-                        '.'
-                    );
-                }
+                $blockedInventoryUpdate['first_half_available'] = '1';
+                $blockedInventoryUpdate['second_half_available'] = '1';
+            }
+
+            elseif ($requestedSlot === 'FIRST_HALF') {
 
                 $inventoryUpdate['inventory_slot_type'] = 2;
-                $inventoryUpdate['first_half_available'] = 1;
-                $blockedInventoryUpdate['first_half_available'] = 1;
-            }elseif ($requestedSlot === 'SECOND_HALF') {
-                if ((int)$liveInventory->second_half_available !== 0) {
+                $inventoryUpdate['first_half_available'] = '1';
 
-                    throw new \RuntimeException(
-                        'Second Half is not available for ' .
-                        Carbon::parse(
-                            $bookingDate
-                        )->format('d M Y') .
-                        '.'
-                    );
-                }
+                $blockedInventoryUpdate['first_half_available'] = '1';
+            }
+
+            elseif ($requestedSlot === 'SECOND_HALF') {
 
                 $inventoryUpdate['inventory_slot_type'] = 2;
-                $inventoryUpdate['second_half_available'] = 1;
-                $blockedInventoryUpdate['second_half_available'] = 1;
-            } else {
+                $inventoryUpdate['second_half_available'] = '1';
 
-                throw new \RuntimeException(
-                    'Invalid Hall slot type.'
-                );
+                $blockedInventoryUpdate['second_half_available'] = '1';
             }
 
             if($orderMaster->save()){
@@ -5221,12 +5241,63 @@ class HallBookingController extends Controller
             ];
             OrderDetail::insert($OrderDetailsData);
 
-            DB::table('t_hall_inventory')
-                ->where('id',$liveInventory->id)
-                ->update($inventoryUpdate);
+            $priceBreakup = [
+                'hall_price' =>(float) $hallPrice,
+                'quantity' => 1,
+                'sub_total' => (float) $subTotal,
+                'tax_percentage' =>(float) $taxPercentage,
+                'tax_amount' =>(float) $taxAmount,
+                'service_charge' =>(float) $serviceCharge,
+                'coupon_amount' =>(float) $couponAmount,
+                'total_price' =>(float) $totalOrderPrice
+            ];
 
-            if($request->book_from == 'blocked'){
-                DB::table('t_blocked_hall_inventory')->where('id', $blockedInventory->id)->update($blockedInventoryUpdate);
+            $bookingData = [
+                'hall_id' =>$hallId,
+                'slot_id' =>$slot->id,
+                'slot_type' =>$requestedSlot,
+                'quantity' =>1,
+                'booking_date' =>$bookingDate,
+                'participant_count' =>(int) ($request->participant_count ?? 0),
+                'route' =>'offline',
+                'status' => $orderStatus,
+                'created_by' => Auth::id(),
+                'updated_by' => Auth::id(),
+                'start_date' => $bookingDate,
+                'end_date' =>$bookingDate,
+                'is_deleted' =>0,
+                'booking_id' => $bookingId,
+                'vendor_id' => $vendorId,
+                'service_charge' => $serviceCharge,
+                'totalPrice' => $totalOrderPrice,
+                'price_breakup' => json_encode($priceBreakup),
+                'user_type' => $user->access_type ?? null,
+                'create_user' => $customerId,
+                'start_time' => $slot->start_time ?? null,
+                'end_time' => $slot->end_time ?? null,
+                'created_at' => now(),
+                'updated_at' => now()
+            ];
+            
+            $tBookingId = DB::table('t_booking') ->insertGetId($bookingData);
+
+            if (!$tBookingId) {
+                throw new \RuntimeException(
+                    'Unable to create Hall booking record.'
+                );
+            }
+
+            if ($bookFrom === 'live') {
+
+                DB::table('t_hall_inventory')
+                    ->where('id', $liveInventory->id)
+                    ->update($inventoryUpdate);
+
+            } elseif ($bookFrom === 'blocked') {
+
+                DB::table('t_blocked_hall_inventory')
+                    ->where('id', $blockedInventory->id)
+                    ->update($blockedInventoryUpdate);
             }
 
             if (!empty($request->coupon_code)) {
@@ -5250,6 +5321,7 @@ class HallBookingController extends Controller
         }
     }
 
+    
     private function sendNotification($OrderMaster, $requestedSlot){
         $RentalInvoice = EmailTemplate::where('ref_code', 'hallInvoice')->first();
         if (!empty($RentalInvoice)) {
@@ -5373,16 +5445,15 @@ class HallBookingController extends Controller
     /**
      * Check Hall Availability
      */
-    private function checkOfflineHallAvailability(Request $request) {
-
+    private function checkOfflineHallAvailability(Request $request){
         $validator = Validator::make(
             $request->all(),
             [
-                'property_id' =>'required|integer',
-                'book_from' =>'required|in:live,blocked',
-                'check_date' =>'required|string',
-                'hall_category_id' =>'required|integer',
-                'slot_type' =>'required|in:FULL_DAY,FIRST_HALF,SECOND_HALF',
+                'property_id'      => 'required|integer',
+                'book_from'        => 'required|in:live,blocked',
+                'check_date'       => 'required|string',
+                'hall_category_id' => 'required|integer',
+                'slot_type'        => 'required|in:FULL_DAY,FIRST_HALF,SECOND_HALF',
             ]
         );
 
@@ -5396,10 +5467,11 @@ class HallBookingController extends Controller
 
         try {
             $bookingDate = Carbon::createFromFormat('d M Y',trim($request->check_date))
-                    ->startOfDay()
-                    ->format('Y-m-d');
+                ->startOfDay()
+                ->format('Y-m-d');
 
         } catch (\Throwable $exception) {
+
             return response()->json([
                 'status' => 0,
                 'message' => 'Invalid booking date format.',
@@ -5408,7 +5480,6 @@ class HallBookingController extends Controller
         }
 
         if ($bookingDate < now()->format('Y-m-d')) {
-
             return response()->json([
                 'status' => 0,
                 'message' => 'Previous dates cannot be selected.',
@@ -5416,15 +5487,15 @@ class HallBookingController extends Controller
             ]);
         }
 
-
         $propertyId = (int) $request->property_id;
         $slotType = strtoupper(trim($request->slot_type));
+        $bookFrom = strtolower(trim($request->book_from));
 
         $property = HallProperty::where('id', $propertyId)
-                ->where('is_deleted', '0')
-                ->where('publish_status','PUBLISH')
-                ->where('status','1')
-                ->first();
+            ->where('is_deleted', '0')
+            ->where('publish_status', 'PUBLISH')
+            ->where('status', '1')
+            ->first();
 
         if (empty($property)) {
             return response()->json([
@@ -5434,303 +5505,156 @@ class HallBookingController extends Controller
             ]);
         }
 
-
         $halls = DB::table('m_hall as h')
-            ->leftJoin('m_hcategory as hc','h.hcategory_id', '=', 'hc.id')
+            ->leftJoin('m_hcategory as hc','h.hcategory_id','=','hc.id')
             ->where('h.property_id', $propertyId)
             ->where('h.hcategory_id', $request->hall_category_id)
-            ->where('h.status','1')
-            ->where('h.is_deleted','0')
-            ->select('h.id', 'h.hall_name', 'hc.hcategory_name')
-            ->orderBy('h.hall_name','asc')
+            ->where('h.status', '1')
+            ->where('h.is_deleted', '0')
+            ->select('h.id','h.hall_name','hc.hcategory_name')
+            ->orderBy('h.hall_name', 'asc')
             ->get();
 
-
         $availableHalls = [];
+
         $GstDetails = [];
 
-        $GSTData =GstDetail::pluck('value','name')->toArray();
+        $GSTData = GstDetail::pluck('value', 'name')->toArray();
 
-        $GstTable = GstTable::where([
-                'vendor_id' => $property->vender_id,
-                'service_type' => 'hall'
-            ])
-                ->orderBy('min_amount','asc')
-                ->pluck('gst','min_amount')
-                ->toArray();
+        $GstTable = GstTable::where(['vendor_id' => $property->vender_id,'service_type' => 'hall'])
+            ->orderBy('min_amount', 'asc')
+            ->pluck('gst','min_amount')
+            ->toArray();
 
         if (!empty($GstTable)) {
             foreach ($GstTable as $k => $gst) {
                 $GstDetails[$k] = json_decode($gst,true);
             }
-
         } else {
             $GstDetails[0] = $GSTData;
         }
-
         foreach ($halls as $hall) {
-            $liveInventory = DB::table('t_hall_inventory')
-                    ->where('hall_id',$hall->id)
-                    ->whereDate('inventory_date',$bookingDate)
-                    ->first();
 
-            $blockedInventory = DB::table('t_blocked_hall_inventory')
+            $isAvailable = false;
+            if ($bookFrom === 'live') {
+                $liveInventory = DB::table('t_hall_inventory')
                     ->where('hall_id', $hall->id)
-                    ->whereDate('block_date',$bookingDate)
+                    ->whereDate('inventory_date', $bookingDate)
                     ->first();
 
-            if (!$liveInventory) {
+                if (!$liveInventory) {
+                    continue;
+                }
+
+                $liveFirst = (int) $liveInventory->first_half_available;
+                $liveSecond = (int) $liveInventory->second_half_available;
+
+                if ($slotType === 'FULL_DAY') {
+                    $isAvailable = $liveFirst === 0 && $liveSecond === 0;
+                }
+
+                elseif ($slotType === 'FIRST_HALF') {
+                    $isAvailable = $liveFirst === 0;
+                }
+
+                elseif ($slotType === 'SECOND_HALF') {
+                    $isAvailable = $liveSecond === 0;
+                }
+            }
+
+            elseif ($bookFrom === 'blocked') {
+
+                $blockedInventory = DB::table('t_blocked_hall_inventory')
+                    ->where('hall_id', $hall->id)
+                    ->whereDate('block_date', $bookingDate)
+                    ->first();
+
+                if (!$blockedInventory) {
+                    continue;
+                }
+
+                $blockedFirst = (int) $blockedInventory->first_half_available;
+
+                $blockedSecond = (int) $blockedInventory->second_half_available;
+
+                if ($slotType === 'FULL_DAY') {
+                    $isAvailable = $blockedFirst === 0 && $blockedSecond === 0;
+                }
+
+                elseif ($slotType === 'FIRST_HALF') {
+                    $isAvailable = $blockedFirst === 0;
+                }
+
+                elseif ($slotType === 'SECOND_HALF') {
+                    $isAvailable = $blockedSecond === 0;
+                }
+            }
+
+            if (!$isAvailable) {
                 continue;
             }
 
-            $liveFirst =(int)$liveInventory->first_half_available;
-            $liveSecond =(int)$liveInventory->second_half_available;
-
-            $blockedFirst = null;
-            $blockedSecond = null;
-
-            if ($blockedInventory) {
-                $blockedFirst = (int)$blockedInventory->first_half_available;
-                $blockedSecond = (int)$blockedInventory->second_half_available;
-            }
-
-            $isAvailable = false;
-
             if ($slotType === 'FULL_DAY') {
+                $slot = DB::table('m_slot')
+                    ->select('price','id','slot','booking_type')
+                    ->where('hall_id', $hall->id)
+                    ->where('status', '1')
+                    ->where('is_deleted', 0)
+                    ->where(function ($query) {
+                        $query
+                            ->where('slot', 'FULL_DAY')
+                            ->orWhere('booking_type', 'FULL_DAY');
+                    })
+                    ->first();
+            } else {
 
-                $liveAvailable =
-                    $liveFirst === 0 &&
-                    $liveSecond === 0;
-
-                $blockedAvailable =
-                    !$blockedInventory ||
-                    (
-                        $blockedFirst === 0 &&
-                        $blockedSecond === 0
-                    );
-
-                $isAvailable =
-                    $liveAvailable &&
-                    $blockedAvailable;
+                $slot = DB::table('m_slot')
+                    ->select('price','id','slot','booking_type')
+                    ->where('hall_id', $hall->id)
+                    ->where('status', '1')
+                    ->where('is_deleted', 0)
+                    ->where(function ($query) {
+                        $query
+                            ->where('slot', 'HALF_DAY')
+                            ->orWhere('booking_type', 'HALF_DAY');
+                    })
+                    ->first();
             }
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | FIRST HALF
-            |--------------------------------------------------------------------------
-            */
-
-            elseif (
-                $slotType ===
-                'FIRST_HALF'
-            ) {
-
-                $liveAvailable =
-                    $liveFirst === 0;
-
-                $blockedAvailable =
-                    !$blockedInventory ||
-                    $blockedFirst === 0;
-
-                $isAvailable =
-                    $liveAvailable &&
-                    $blockedAvailable;
+            if (!$slot) {
+                continue;
             }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | SECOND HALF
-            |--------------------------------------------------------------------------
-            */
-
-            elseif (
-                $slotType ===
-                'SECOND_HALF'
-            ) {
-
-                $liveAvailable =
-                    $liveSecond === 0;
-
-                $blockedAvailable =
-                    !$blockedInventory ||
-                    $blockedSecond === 0;
-
-                $isAvailable =
-                    $liveAvailable &&
-                    $blockedAvailable;
-            }
-
 
             /*
             |--------------------------------------------------------------------------
             | ADD AVAILABLE HALL
             |--------------------------------------------------------------------------
             */
-
-            if (!$isAvailable) {
-                continue;
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | GET SLOT
-            |--------------------------------------------------------------------------
-            */
-
-            if (
-                $slotType ===
-                'FULL_DAY'
-            ) {
-
-                $slot = DB::table(
-                    'm_slot'
-                )
-                    ->select(
-                        'price',
-                        'id'
-                    )
-                    ->where(
-                        'hall_id',
-                        $hall->id
-                    )
-                    ->where(
-                        'status',
-                        '1'
-                    )
-                    ->where(
-                        'is_deleted',
-                        0
-                    )
-                    ->where(function ($query) {
-
-                        $query
-                            ->where(
-                                'slot',
-                                'FULL_DAY'
-                            )
-                            ->orWhere(
-                                'booking_type',
-                                'FULL_DAY'
-                            );
-                    })
-                    ->first();
-
-            } else {
-
-                $slot = DB::table(
-                    'm_slot'
-                )
-                    ->select(
-                        'price',
-                        'id'
-                    )
-                    ->where(
-                        'hall_id',
-                        $hall->id
-                    )
-                    ->where(
-                        'status',
-                        '1'
-                    )
-                    ->where(
-                        'is_deleted',
-                        0
-                    )
-                    ->where(function ($query) {
-
-                        $query
-                            ->where(
-                                'slot',
-                                'HALF_DAY'
-                            )
-                            ->orWhere(
-                                'booking_type',
-                                'HALF_DAY'
-                            );
-                    })
-                    ->first();
-            }
-
-
-            if (!$slot) {
-                continue;
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | AVAILABLE HALL DATA
-            |--------------------------------------------------------------------------
-            */
-
-            $availableHalls[] = [
-
-                'hall_id' =>
-                    $hall->id,
-
-                'hall_name' =>
-                    $hall->hall_name,
-
-                'hcategory_name' =>
-                    $hall->hcategory_name,
-
-                'slot_id' =>
-                    $slot->id,
-
-                'booking_type' =>
-                    $slotType ===
-                    'FULL_DAY'
-                        ? 'FULL_DAY'
-                        : 'HALF_DAY',
-
-                'slot_type' =>
-                    $slotType,
-
-                'available_half' =>
-                    $slotType,
-
-                'available_date' =>
-                    $bookingDate,
-
-                'price' =>
-                    (float) $slot->price,
-
-                'days' =>
-                    1,
-
-                'total_price' =>
-                    (float) $slot->price
+            $hallData = [
+                'hall_id' => $hall->id,
+                'hall_name' => $hall->hall_name,
+                'hcategory_name' => $hall->hcategory_name,
+                'slot_id' => $slot->id,
+                'booking_type' => $slotType === 'FULL_DAY' ? 'FULL_DAY' : 'HALF_DAY',
+                'slot_type' => $slotType,
+                'available_half' => $slotType,
+                'available_date' => $bookingDate,
+                'price' => (float) $slot->price,
+                'days' => 1,
+                'total_price' => (float) $slot->price
             ];
+
+            $availableHalls[] = $hallData;
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | NO AVAILABLE HALL
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            empty($availableHalls)
-        ) {
+        if (empty($availableHalls)) {
 
             return response()->json([
                 'status' => 0,
-                'message' =>
-                    'Sorry! No Hall slot is available for the selected date.',
+                'message' => 'Sorry! No Hall slot is available for the selected date.',
                 'data' => []
             ]);
         }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | RESPONSE
-        |--------------------------------------------------------------------------
-        */
 
         return response()->json([
             'status' => 1,
@@ -5743,292 +5667,145 @@ class HallBookingController extends Controller
     /**
      * Validate Hall Slot Availability
     */
-    private function validateHallSlotAvailability(int $propertyId, int $hallId, string $requestedSlot,string $bookingDate,
-        bool $lockInventory = false,
-        string $book_from = 'live'
-    ) {
-
+    private function validateHallSlotAvailability(int $propertyId,int $hallId,string $requestedSlot,string $bookingDate,bool $lockInventory = false,string $book_from = 'live') 
+    {
         $requestedSlot = strtoupper(trim($requestedSlot));
+        $book_from = strtolower(trim($book_from));
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | SLOT VALIDATION
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            !in_array(
-                $requestedSlot,
-                [
-                    'FULL_DAY',
-                    'FIRST_HALF',
-                    'SECOND_HALF'
-                ],
-                true
-            )
-        ) {
-
+        if (!in_array($requestedSlot, ['FULL_DAY','FIRST_HALF','SECOND_HALF'], true)) {
             return [
                 'available' => false,
-                'message' =>
-                    'Invalid Hall slot selected.'
+                'message' => 'Invalid Hall slot selected.'
+            ];
+        }
+        if (!in_array($book_from, ['live', 'blocked'], true)) {
+            return [
+                'available' => false,
+                'message' => 'Invalid Hall booking source.'
             ];
         }
 
+        $formattedDate = Carbon::parse($bookingDate)->format('d M Y');
 
-        /*
-        |--------------------------------------------------------------------------
-        | LIVE INVENTORY
-        |--------------------------------------------------------------------------
-        */
+        if ($book_from === 'live') {
 
-        $liveQuery =
-            DB::table(
-                't_hall_inventory'
-            )
-                ->where(
-                    'hall_id',
-                    $hallId
-                )
-                ->whereDate(
-                    'inventory_date',
-                    $bookingDate
-                );
+            $liveQuery = DB::table('t_hall_inventory')
+                ->where('hall_id', $hallId)
+                ->whereDate('inventory_date', $bookingDate);
 
-        if ($lockInventory) {
+            if ($lockInventory) {
 
-            $liveQuery->lockForUpdate();
-        }
+                $liveQuery->lockForUpdate();
+            }
 
-        $liveInventory =
-            $liveQuery->first();
+            $liveInventory = $liveQuery->first();
+
+            if (!$liveInventory) {
+
+                return [
+                    'available' => false,
+                    'message' => 'Live Hall inventory was not found for ' . $formattedDate . '.'
+                ];
+            }
 
 
-        if (!$liveInventory) {
+            $liveFirst = (int) $liveInventory->first_half_available;
+            $liveSecond = (int) $liveInventory->second_half_available;
+            /*
+            |--------------------------------------------------------------------------
+            | FULL DAY - LIVE
+            |--------------------------------------------------------------------------
+            */
+            if ($requestedSlot === 'FULL_DAY') {
+                if ($liveFirst !== 0 || $liveSecond !== 0) {
+                    return [
+                        'available' => false,
+                        'message' => 'Full Day is already booked in live inventory for ' . $formattedDate . '.'
+                    ];
+                }
+            }
 
+            elseif ($requestedSlot === 'FIRST_HALF') {
+                if ($liveFirst !== 0) {
+                    return [
+                        'available' => false,
+                        'message' => 'First Half is already booked in live inventory for ' . $formattedDate . '.'
+                    ];
+                }
+            }
+
+            elseif ($requestedSlot === 'SECOND_HALF') {
+                if ($liveSecond !== 0) {
+                    return [
+                        'available' => false,
+                        'message' => 'Second Half is already booked in live inventory for '
+                            . $formattedDate . '.'
+                    ];
+                }
+            }
             return [
-                'available' => false,
-                'message' =>
-                    'Live Hall inventory was not found for ' .
-                    Carbon::parse(
-                        $bookingDate
-                    )->format('d M Y') .
-                    '.'
+                'available' => true,
+                'message' => ''
             ];
         }
+        if ($book_from === 'blocked') {
+            $blockedQuery = DB::table('t_blocked_hall_inventory')
+                ->where('hall_id', $hallId)
+                ->whereDate('block_date', $bookingDate);
 
+            if ($lockInventory) {
+                $blockedQuery->lockForUpdate();
+            }
 
-        /*
-        |--------------------------------------------------------------------------
-        | BLOCKED INVENTORY
-        |--------------------------------------------------------------------------
-        */
+            $blockedInventory = $blockedQuery->first();
 
-        $blockedQuery =
-            DB::table(
-                't_blocked_hall_inventory'
-            )
-                ->where(
-                    'hall_id',
-                    $hallId
-                )
-                ->whereDate(
-                    'block_date',
-                    $bookingDate
-                );
+            if (!$blockedInventory) {
+                return [
+                    'available' => true,
+                    'message' => ''
+                ];
+            }
 
-        if ($lockInventory) {
+            $blockedFirst = (int) $blockedInventory->first_half_available;
+            $blockedSecond = (int) $blockedInventory->second_half_available;
 
-            $blockedQuery->lockForUpdate();
+            if ($requestedSlot === 'FULL_DAY') {
+                if ($blockedFirst !== 0 || $blockedSecond !== 0) {
+                    return [
+                        'available' => false,
+                        'message' => 'Full Day is already blocked for '
+                            . $formattedDate . '.'
+                    ];
+                }
+            }
+
+            elseif ($requestedSlot === 'FIRST_HALF') {
+                if ($blockedFirst !== 0) {
+                    return [
+                        'available' => false,
+                        'message' => 'First Half is already blocked for '
+                            . $formattedDate . '.'
+                    ];
+                }
+            }
+
+            elseif ($requestedSlot === 'SECOND_HALF') {
+                if ($blockedSecond !== 0) {
+                    return [
+                        'available' => false,
+                        'message' => 'Second Half is already blocked for '
+                            . $formattedDate . '.'
+                    ];
+                }
+            }
+            return [
+                'available' => true,
+                'message' => ''
+            ];
         }
-
-        $blockedInventory =
-            $blockedQuery->first();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | LIVE INVENTORY STATUS
-        |--------------------------------------------------------------------------
-        */
-
-        $liveFirst =
-            (int)
-            $liveInventory->first_half_available;
-
-        $liveSecond =
-            (int)
-            $liveInventory->second_half_available;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | BLOCKED INVENTORY STATUS
-        |--------------------------------------------------------------------------
-        */
-
-        $blockedFirst =
-            $blockedInventory
-                ? (int)
-                    $blockedInventory->first_half_available
-                : 0;
-
-        $blockedSecond =
-            $blockedInventory
-                ? (int)
-                    $blockedInventory->second_half_available
-                : 0;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | FULL DAY
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            $requestedSlot ===
-            'FULL_DAY'
-        ) {
-
-            if (
-                $liveFirst !== 0 ||
-                $liveSecond !== 0
-            ) {
-
-                return [
-                    'available' => false,
-                    'message' =>
-                        'Full Day is already booked in live inventory for ' .
-                        Carbon::parse(
-                            $bookingDate
-                        )->format('d M Y') .
-                        '.'
-                ];
-            }
-
-
-            if (
-                $blockedInventory &&
-                (
-                    $blockedFirst !== 0 ||
-                    $blockedSecond !== 0
-                )
-            ) {
-
-                return [
-                    'available' => false,
-                    'message' =>
-                        'Full Day is blocked for ' .
-                        Carbon::parse(
-                            $bookingDate
-                        )->format('d M Y') .
-                        '.'
-                ];
-            }
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | FIRST HALF
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            $requestedSlot ===
-            'FIRST_HALF'
-        ) {
-
-            if (
-                $liveFirst !== 0
-            ) {
-
-                return [
-                    'available' => false,
-                    'message' =>
-                        'First Half is already booked in live inventory for ' .
-                        Carbon::parse(
-                            $bookingDate
-                        )->format('d M Y') .
-                        '.'
-                ];
-            }
-
-
-            if (
-                $blockedInventory &&
-                $blockedFirst !== 0
-            ) {
-
-                return [
-                    'available' => false,
-                    'message' =>
-                        'First Half is blocked for ' .
-                        Carbon::parse(
-                            $bookingDate
-                        )->format('d M Y') .
-                        '.'
-                ];
-            }
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | SECOND HALF
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            $requestedSlot ===
-            'SECOND_HALF'
-        ) {
-
-            if (
-                $liveSecond !== 0
-            ) {
-
-                return [
-                    'available' => false,
-                    'message' =>
-                        'Second Half is already booked in live inventory for ' .
-                        Carbon::parse(
-                            $bookingDate
-                        )->format('d M Y') .
-                        '.'
-                ];
-            }
-
-
-            if (
-                $blockedInventory &&
-                $blockedSecond !== 0
-            ) {
-
-                return [
-                    'available' => false,
-                    'message' =>
-                        'Second Half is blocked for ' .
-                        Carbon::parse(
-                            $bookingDate
-                        )->format('d M Y') .
-                        '.'
-                ];
-            }
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | AVAILABLE
-        |--------------------------------------------------------------------------
-        */
-
         return [
-            'available' => true,
-            'message' => ''
+            'available' => false,
+            'message' => 'Unable to validate Hall slot availability.'
         ];
     }
 

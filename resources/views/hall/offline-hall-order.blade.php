@@ -242,10 +242,7 @@
 
                 {{-- User section --}}
                 <div class="white-box user-section" style="display:none;">
-                    <h3 class="box-title">
-                        User Details
-                    </h3>
-
+                    <h3 class="box-title"> User Details </h3>
                     <hr>
 
                     <div class="row">
@@ -375,9 +372,7 @@
 
                             {{-- Company Address --}}
                             <div class="form-group">
-                                <label>
-                                    Registered Company Address
-                                </label>
+                                <label> Registered Company Address</label>
 
                                 <input type="text" class="form-control" name="gst_company_address" id="gst_company_address" value="{{ old('gst_company_address') }}">
 
@@ -385,24 +380,10 @@
 
                             {{-- Booking Narration --}}
                             <div class="form-group">
+                                <label> Booking Narration</label>
+                                <span class="required-field"> * </span>
 
-                                <label>
-                                    Booking Narration
-                                </label>
-
-                                <span class="required-field">
-                                    *
-                                </span>
-
-                                <textarea
-                                    class="form-control"
-                                    name="book_naration"
-                                    id="book_naration"
-                                    rows="3"
-                                    maxlength="100"
-                                    placeholder="Please enter MR number, date or payment details"
-                                    required
-                                >{{ old('book_naration') }}</textarea>
+                                <textarea class="form-control" name="book_naration" id="book_naration" rows="3"  maxlength="100"  placeholder="Please enter MR number, date or payment details"  required>{{ old('book_naration') }}</textarea>
 
                                 @if($errors->has('book_naration'))
                                     <span class="text-danger">
@@ -414,59 +395,22 @@
 
                             {{-- Payment Method --}}
                             <div class="form-group">
+                                <label> Payment Method </label>
+                                <span class="required-field"> *</span>
 
-                                <label>
-                                    Payment Method
-                                </label>
+                                <select class="form-control" name="payment_gateway" id="payment_gateway" required>
+                                    <option value=""> Select Payment Method</option>
 
-                                <span class="required-field">
-                                    *
-                                </span>
+                                    <option value="cash" {{ old('payment_gateway') == 'cash' ? 'selected' : '' }}> Cash </option>
 
-                                <select
-                                    class="form-control"
-                                    name="payment_gateway"
-                                    id="payment_gateway"
-                                    required
-                                >
-                                    <option value="">
-                                        Select Payment Method
-                                    </option>
+                                    <option value="upi" {{ old('payment_gateway') == 'upi' ? 'selected' : '' }}> UPI </option>
 
-                                    <option
-                                        value="cash"
-                                        {{ old('payment_gateway') == 'cash' ? 'selected' : '' }}
-                                    >
-                                        Cash
-                                    </option>
+                                    <option value="card" {{ old('payment_gateway') == 'card' ? 'selected' : '' }}> Card </option>
 
-                                    <option
-                                        value="upi"
-                                        {{ old('payment_gateway') == 'upi' ? 'selected' : '' }}
-                                    >
-                                        UPI
-                                    </option>
+                                    <!-- <option value="hdfc" {{ old('payment_gateway') == 'hdfc' ? 'selected' : '' }} >  HDFC </option> -->
 
-                                    <option
-                                        value="card"
-                                        {{ old('payment_gateway') == 'card' ? 'selected' : '' }}
-                                    >
-                                        Card
-                                    </option>
+                                    <option value="credit" {{ old('payment_gateway') == 'credit' ? 'selected' : '' }}> Credit </option>
 
-                                    <option
-                                        value="hdfc"
-                                        {{ old('payment_gateway') == 'hdfc' ? 'selected' : '' }}
-                                    >
-                                        HDFC
-                                    </option>
-
-                                    <option
-                                        value="credit"
-                                        {{ old('payment_gateway') == 'credit' ? 'selected' : '' }}
-                                    >
-                                        Credit
-                                    </option>
                                 </select>
 
                                 @if($errors->has('payment_gateway'))
@@ -474,68 +418,42 @@
                                         {{ $errors->first('payment_gateway') }}
                                     </span>
                                 @endif
-
                             </div>
-
                         </div>
 
                         {{-- Booking summary --}}
                         <div class="col-md-4">
-
                             <div class="booking-summary">
-
                                 <h4 class="text-center">
-                                    <u>
-                                        Booking Details
-                                    </u>
+                                    <u> Booking Details </u>
                                 </h4>
-
                                 <div id="bookingDetails"></div>
-
                                 <hr>
 
                                 <h4 class="text-center">
-                                    <u>
-                                        Payment Breakup
-                                    </u>
+                                    <u> Payment Breakup</u>
                                 </h4>
 
                                 <div id="priceDetails"></div>
 
                             </div>
-
                         </div>
 
                         <div class="col-md-12 form-action-section">
-
-                            <button
-                                type="button"
-                                class="btn btn-default"
-                                id="backToHall"
-                            >
+                            <button type="button" class="btn btn-default" id="backToHall">
                                 Back
                             </button>
 
-                            <button
-                                type="submit"
-                                class="btn btn-primary"
-                                id="bookNow"
-                            >
+                            <button type="submit" class="btn btn-primary" id="bookNow">
                                 Book Now
                             </button>
 
                         </div>
-
                     </div>
-
                 </div>
-
             </form>
-
         </div>
-
     </div>
-
 </div>
 
 <style>
@@ -618,4529 +536,1034 @@
 <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 
-<!-- <script>
-$(document).ready(function () {
 
-    var selectedHall = null;
-
-var today = moment().startOf('day');
-
-$('#check_date').daterangepicker({
-    singleDatePicker: true,
-    autoApply: true,
-    minDate: today,
-    startDate: today,
-    locale: {
-        format: 'DD MMM YYYY'
-    }
-});
-
-$('#check_date').val(today.format('DD MMM YYYY'));
-
-updateHiddenDates();
-
-$('#check_date').on('apply.daterangepicker', function (event, picker) {
-
-    var selectedDate = picker.startDate.format('DD MMM YYYY');
-
-    $(this).val(selectedDate);
-
-    updateHiddenDates();
-
-    resetHallSelection();
-    hideHallResults();
-});
-function updateHiddenDates() {
-
-    var checkDate = $('#check_date').val();
-
-    if (!checkDate) {
-        return;
-    }
-
-    var selectedDate = moment(
-        checkDate,
-        'DD MMM YYYY'
-    ).format('YYYY-MM-DD');
-
-    $('#start_date').val(selectedDate);
-    $('#end_date').val(selectedDate);
-
-    // Hall booking is for one day
-    $('#total_days').val(1);
-}
-    // var today = moment().startOf('day');
-    // var initialStart = today.clone();
-
-    // var initialEnd = today
-    //     .clone()
-    //     .add(1, 'days');
-
-    // var currentDateValue =
-    //     $('#check_date').val();
-
-    // if (currentDateValue) {
-
-    //     var dateParts =
-    //         currentDateValue.split(' - ');
-
-    //     if (dateParts.length === 2) {
-
-    //         var parsedStart = moment(
-    //             dateParts[0].trim(),
-    //             'DD MMM YYYY',
-    //             true
-    //         );
-
-    //         var parsedEnd = moment(
-    //             dateParts[1].trim(),
-    //             'DD MMM YYYY',
-    //             true
-    //         );
-
-    //         if (
-    //             parsedStart.isValid() &&
-    //             !parsedStart.isBefore(today)
-    //         ) {
-    //             initialStart =
-    //                 parsedStart.clone();
-    //         }
-
-    //         if (
-    //             parsedEnd.isValid() &&
-    //             !parsedEnd.isBefore(initialStart)
-    //         ) {
-    //             initialEnd =
-    //                 parsedEnd.clone();
-    //         } else {
-    //             initialEnd =
-    //                 initialStart
-    //                     .clone()
-    //                     .add(1, 'days');
-    //         }
-    //     }
-    // }
-
-    // if (initialStart.isBefore(today)) {
-    //     initialStart = today.clone();
-    // }
-
-    // if (
-    //     initialEnd.isBefore(initialStart) ||
-    //     initialEnd.isSame(initialStart)
-    // ) {
-    //     initialEnd =
-    //         initialStart
-    //             .clone()
-    //             .add(1, 'days');
-    // }
-
-    // $('#check_date').daterangepicker({
-    //     autoApply: true,
-    //     startDate: initialStart,
-    //     endDate: initialEnd,
-    //     minDate: today,
-
-    //     locale: {
-    //         format: 'DD MMM YYYY',
-    //         separator: ' - '
-    //     }
-    // });
-
-    // $('#check_date').val(
-    //     initialStart.format('DD MMM YYYY') +
-    //     ' - ' +
-    //     initialEnd.format('DD MMM YYYY')
-    // );
-
-    // updateHiddenDates();
-
-    // $('#check_date').on(
-    //     'apply.daterangepicker',
-    //     function (
-    //         event,
-    //         picker
-    //     ) {
-    //         $(this).val(
-    //             picker.startDate.format(
-    //                 'DD MMM YYYY'
-    //             ) +
-    //             ' - ' +
-    //             picker.endDate.format(
-    //                 'DD MMM YYYY'
-    //             )
-    //         );
-
-    //         updateHiddenDates();
-
-    //         resetHallSelection();
-
-    //         hideHallResults();
-    //     }
-    // );
-
-    // function updateHiddenDates() {
-
-    //     var picker =
-    //         $('#check_date').data(
-    //             'daterangepicker'
-    //         );
-
-    //     if (!picker) {
-    //         return;
-    //     }
-
-    //     $('#start_date').val(
-    //         picker.startDate.format(
-    //             'YYYY-MM-DD'
-    //         )
-    //     );
-
-    //     $('#end_date').val(
-    //         picker.endDate.format(
-    //             'YYYY-MM-DD'
-    //         )
-    //     );
-
-    //     var totalDays =
-    //         picker.endDate.diff(
-    //             picker.startDate,
-    //             'days'
-    //         );
-
-    //     if (totalDays < 1) {
-    //         totalDays = 1;
-    //     }
-
-    //     $('#total_days').val(
-    //         totalDays
-    //     );
-    // }
-
-    // function getTotalDays() {
-
-    //     var totalDays = parseInt(
-    //         $('#total_days').val()
-    //     );
-
-    //     return totalDays > 0
-    //         ? totalDays
-    //         : 1;
-    // }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Property and Book From change
-    |--------------------------------------------------------------------------
-    */
-
-    $('#property_id, #hall_category_id, #book_from').on(
-        'change',
-        function () {
-
-            resetHallSelection();
-
-            hideHallResults();
-        }
-    );
-
-    function hideHallResults() {
-
-        $('.hall-result-section')
-            .hide();
-
-        $('#hallData').html('');
-
-        $('#availabilityMessage')
-            .hide()
-            .html('');
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Check availability
-    |--------------------------------------------------------------------------
-    */
-
-    $('#checkAvailability').on(
-        'click',
-        function () {
-
-            var propertyId =
-                $('#property_id').val();
-
-            var hallCategoryId =
-                $('#hall_category_id').val();
-
-            var bookFrom =
-                $('#book_from').val();
-
-            var checkDate =
-                $('#check_date').val();
-
-            var slotType = $('#slot_type').val();
-
-            if (!propertyId) {
-                alert(
-                    'Please select a property.'
-                );
-
-                return;
-            }
-
-            if (!hallCategoryId) {
-                alert(
-                    'Please select Hall Category.'
-                );
-
-                return;
-            }
-
-            if (!bookFrom) {
-                alert(
-                    'Please select Book From.'
-                );
-
-                return;
-            }
-
-            if (!checkDate) {
-                alert(
-                    'Please select Booking Date.'
-                );
-
-                return;
-            }
-
-            updateHiddenDates();
-
-            resetHallSelection();
-
-            $('#availabilityLoader')
-                .show();
-
-            $('#availabilityMessage')
-                .hide()
-                .html('');
-
-            $('.hall-result-section')
-                .hide();
-
-            $('#hallData').html('');
-
-            requestHallAvailability(
-                function (response) {
-
-                    $('#availabilityLoader')
-                        .hide();
-
-                    var hallItems =
-                        getAvailabilityItems(
-                            response
-                        );
-
-                    if (
-                        !isSuccessResponse(
-                            response
-                        ) ||
-                        hallItems.length === 0
-                    ) {
-                        showAvailabilityMessage(
-                            response.message ||
-                            'No Hall is available.',
-                            'warning'
-                        );
-
-                        return;
-                    }
-
-                    renderHallRows(
-                        hallItems
-                    );
-                },
-
-                function (message) {
-
-                    $('#availabilityLoader')
-                        .hide();
-
-                    showAvailabilityMessage(
-                        message,
-                        'danger'
-                    );
-                }
-            );
-        }
-    );
-
-    function requestHallAvailability(
-        successCallback,
-        errorCallback
-    ) {
-        $.ajax({
-            type: 'POST',
-
-            url:
-                "{{ route('create-offline-hall-order') }}",
-
-            data: {
-                _token:
-                    "{{ csrf_token() }}",
-
-                request_type:
-                    'check_hall_availability',
-
-                property_id:
-                    $('#property_id').val(),
-
-                hall_category_id:
-                    $('#hall_category_id').val(),
-
-                book_from:
-                    $('#book_from').val(),
-
-                check_date:
-                    $('#check_date').val(),
-
-                start_date:
-                    $('#start_date').val(),
-
-                end_date:
-                    $('#end_date').val(),
-                slot_type: $('#slot_type').val()
-            },
-
-            success: function (response) {
-
-                successCallback(
-                    parseAjaxResponse(
-                        response
-                    )
-                );
-            },
-
-            error: function (xhr) {
-
-                errorCallback(
-                    getAjaxError(
-                        xhr,
-                        'Unable to check Hall availability.'
-                    )
-                );
-            }
-        });
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Render Hall rows
-    |--------------------------------------------------------------------------
-    */
-
-    function renderHallRows(items) {
-
-        var groupedHalls = {};
-
-        // Slot selected from Hall Details section
-        var selectedSlotType =
-            $('#slot_type').val();
-
-        $.each(items, function (index, item) {
-
-            var hallId = parseInt(
-                item.hall_id ||
-                item.id ||
-                0
-            );
-
-            if (!hallId) {
-                return;
-            }
-
-            if (!groupedHalls[hallId]) {
-
-                groupedHalls[hallId] = {
-                    hall_id: hallId,
-
-                    hall_name:
-                        item.hall_name ||
-                        item.name ||
-                        '',
-
-                    hall_type:
-                        item.hcategory_name ||
-                        item.hall_type ||
-                        item.category_name ||
-                        '',
-
-                    slots: []
-                };
-            }
-
-            createSlots(
-                groupedHalls[hallId].slots,
-                item
-            );
-        });
-
-
-        var html = '';
-
-        $.each(
-            groupedHalls,
-            function (hallId, hall) {
-
-                var selectedSlot = null;
-
-                $.each(
-                    hall.slots,
-                    function (slotIndex, slot) {
-
-                        if (
-                            slot.slot_type ===
-                            selectedSlotType
-                        ) {
-                            selectedSlot = slot;
-
-                            return false;
-                        }
-                    }
-                );
-
-                if (!selectedSlot) {
-                    return;
-                }
-
-
-                var displaySlotName =
-                    selectedSlotType === 'FULL_DAY'
-                        ? 'Full Day'
-                        : 'Half Day';
-
-
-                html +=
-                    '<tr>' +
-
-                        '<td>' +
-
-                            '<h4 class="hall-name">' +
-                                escapeHtml(
-                                    hall.hall_name
-                                ) +
-                            '</h4>' +
-
-                            (
-                                hall.hall_type
-                                    ? '<p class="hall-information">' +
-                                        escapeHtml(
-                                            hall.hall_type
-                                        ) +
-                                      '</p>'
-                                    : ''
-                            ) +
-
-                        '</td>' +
-
-
-                        '<td>' +
-
-                            '<span class="slot-price-label">' +
-
-                                'Price/day: ₹' +
-
-                                parseFloat(
-                                    selectedSlot.unit_price || 0
-                                ).toFixed(2) +
-
-                                ' (' +
-                                displaySlotName +
-                                ')' +
-
-                            '</span>' +
-
-
-                            '<button ' +
-                                'type="button" ' +
-                                'class="btn btn-primary btn-block confirm-hall-btn" ' +
-
-                                'data-hall-id="' +
-                                    hall.hall_id +
-                                '" ' +
-
-                                'data-hall-name="' +
-                                    escapeAttribute(
-                                        hall.hall_name
-                                    ) +
-                                '" ' +
-
-                                'data-hall-type="' +
-                                    escapeAttribute(
-                                        hall.hall_type
-                                    ) +
-                                '" ' +
-
-                                'data-slot-id="' +
-                                    selectedSlot.slot_id +
-                                '" ' +
-
-                                'data-slot-type="' +
-                                    selectedSlot.slot_type +
-                                '" ' +
-
-                                'data-slot-label="' +
-                                    displaySlotName +
-                                '" ' +
-
-                                'data-booking-type="' +
-                                    selectedSlot.booking_type +
-                                '" ' +
-
-                                'data-available-half="' +
-                                    selectedSlot.available_half +
-                                '" ' +
-
-                                'data-unit-price="' +
-                                    selectedSlot.unit_price +
-                                '">' +
-
-                                'Confirm Hall' +
-
-                            '</button>' +
-
-                        '</td>' +
-
-                    '</tr>';
-            }
-        );
-
-
-        if (!html) {
-
-            showAvailabilityMessage(
-                'No Hall slot is available.',
-                'warning'
-            );
-
-            return;
-        }
-
-
-        $('#hallData').html(
-            html
-        );
-
-        $('.hall-result-section')
-            .show();
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Create slot options
-    |--------------------------------------------------------------------------
-    */
-
-    function createSlots(
-        slotList,
-        item
-    ) {
-        var slotType =
-            normaliseToken(
-                item.booking_type ||
-                item.slot_type ||
-                item.slotType ||
-                ''
-            );
-
-        var availableHalf =
-            normaliseToken(
-                item.available_half ||
-                item.availableHalf ||
-                ''
-            );
-
-        var slotId =
-            item.slot_id ||
-            item.slotId ||
-            item.id ||
-            0;
-
-        if (
-            slotType === 'FULL_DAY'
-        ) {
-            addUniqueSlot(
-                slotList,
-                {
-                    slot_id:
-                        slotId,
-
-                    slot_type:
-                        'FULL_DAY',
-
-                    slot_label:
-                        'Full Day',
-
-                    booking_type:
-                        item.booking_type ||
-                        'FULL_DAY',
-
-                    available_half:
-                        'FULL_DAY',
-
-                    unit_price:
-                        getSlotPrice(
-                            item,
-                            'FULL_DAY'
-                        )
-                }
-            );
-
-            return;
-        }
-
-        if (
-            slotType === 'FIRST_HALF' ||
-            availableHalf === 'FIRST_HALF'
-        ) {
-            addUniqueSlot(
-                slotList,
-                {
-                    slot_id:
-                        slotId,
-
-                    slot_type:
-                        'FIRST_HALF',
-
-                    slot_label:
-                        'First Half',
-
-                    booking_type:
-                        item.booking_type ||
-                        'HALF_DAY',
-
-                    available_half:
-                        'FIRST_HALF',
-
-                    unit_price:
-                        getSlotPrice(
-                            item,
-                            'FIRST_HALF'
-                        )
-                }
-            );
-        }
-
-        if (
-            slotType === 'SECOND_HALF' ||
-            availableHalf === 'SECOND_HALF'
-        ) {
-            addUniqueSlot(
-                slotList,
-                {
-                    slot_id:
-                        slotId,
-
-                    slot_type:
-                        'SECOND_HALF',
-
-                    slot_label:
-                        'Second Half',
-
-                    booking_type:
-                        item.booking_type ||
-                        'HALF_DAY',
-
-                    available_half:
-                        'SECOND_HALF',
-
-                    unit_price:
-                        getSlotPrice(
-                            item,
-                            'SECOND_HALF'
-                        )
-                }
-            );
-        }
-
-        if (
-            slotType === 'HALF_DAY' &&
-            (
-                availableHalf ===
-                    'FIRST_HALF_OR_SECOND_HALF' ||
-                availableHalf === 'BOTH' ||
-                availableHalf === 'FULL_DAY' ||
-                availableHalf === ''
-            )
-        ) {
-            addUniqueSlot(
-                slotList,
-                {
-                    slot_id:
-                        slotId,
-
-                    slot_type:
-                        'FIRST_HALF',
-
-                    slot_label:
-                        'First Half',
-
-                    booking_type:
-                        item.booking_type ||
-                        'HALF_DAY',
-
-                    available_half:
-                        'FIRST_HALF',
-
-                    unit_price:
-                        getSlotPrice(
-                            item,
-                            'FIRST_HALF'
-                        )
-                }
-            );
-
-            addUniqueSlot(
-                slotList,
-                {
-                    slot_id:
-                        slotId,
-
-                    slot_type:
-                        'SECOND_HALF',
-
-                    slot_label:
-                        'Second Half',
-
-                    booking_type:
-                        item.booking_type ||
-                        'HALF_DAY',
-
-                    available_half:
-                        'SECOND_HALF',
-
-                    unit_price:
-                        getSlotPrice(
-                            item,
-                            'SECOND_HALF'
-                        )
-                }
-            );
-        }
-    }
-
-    function getSlotPrice(
-        item,
-        slotType
-    ) {
-        var price = 0;
-
-        if (
-            slotType === 'FULL_DAY'
-        ) {
-            price =
-                item.full_day_price ||
-                item.price ||
-                item.slot_price ||
-                item.sell_price ||
-                0;
-        }
-
-        if (
-            slotType === 'FIRST_HALF'
-        ) {
-            price =
-                item.first_half_price ||
-                item.half_day_price ||
-                item.price ||
-                item.slot_price ||
-                item.sell_price ||
-                0;
-        }
-
-        if (
-            slotType === 'SECOND_HALF'
-        ) {
-            price =
-                item.second_half_price ||
-                item.half_day_price ||
-                item.price ||
-                item.slot_price ||
-                item.sell_price ||
-                0;
-        }
-
-        price =
-            parseFloat(price);
-
-        return isNaN(price)
-            ? 0
-            : price;
-    }
-
-    function addUniqueSlot(
-        slotList,
-        newSlot
-    ) {
-        var exists =
-            slotList.some(
-                function (slot) {
-
-                    return (
-                        String(
-                            slot.slot_id
-                        ) ===
-                        String(
-                            newSlot.slot_id
-                        ) &&
-                        String(
-                            slot.slot_type
-                        ) ===
-                        String(
-                            newSlot.slot_type
-                        )
-                    );
-                }
-            );
-
-        if (!exists) {
-            slotList.push(
-                newSlot
-            );
-        }
-    }
-
-    function sortSlots(
-        slotList
-    ) {
-        var order = {
-            FULL_DAY: 1,
-            FIRST_HALF: 2,
-            SECOND_HALF: 3
-        };
-
-        slotList.sort(
-            function (
-                first,
-                second
-            ) {
-                return (
-                    order[
-                        first.slot_type
-                    ] -
-                    order[
-                        second.slot_type
-                    ]
-                );
-            }
-        );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Slot dropdown
-    |--------------------------------------------------------------------------
-    */
-
-    $(document).on(
-        'change',
-        '.hall-slot-dropdown',
-        function () {
-
-            var hallId =
-                $(this).data(
-                    'hall-id'
-                );
-
-            var selectedOption =
-                $(this).find(
-                    'option:selected'
-                );
-
-            var unitPrice =
-                parseFloat(
-                    selectedOption.data(
-                        'unit-price'
-                    ) || 0
-                );
-
-            if (
-                !selectedOption.val()
-            ) {
-                $('#hallPriceLabel_' + hallId)
-                    .text(
-                        'Select a slot'
-                    );
-
-                return;
-            }
-
-            $('#hallPriceLabel_' + hallId)
-                .text(
-                    'Price/day: ' +
-                    String.fromCharCode(8377) +
-                    unitPrice.toFixed(2)
-                );
-
-            
-        }
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Confirm Hall
-    |--------------------------------------------------------------------------
-    */
-
-    $(document).on(
-        'click',
-        '.confirm-hall-btn',
-        function () {
-
-            var button =
-                $(this);
-
-            var hallId =
-                parseInt(
-                    button.data(
-                        'hall-id'
-                    )
-                );
-
-            var slotId =
-                parseInt(
-                    button.attr('data-slot-id')
-                );
-
-            var slotType =
-                button.attr('data-slot-type');
-
-            var slotLabel =
-                button.attr('data-slot-label');
-
-            var bookingType =
-                button.attr('data-booking-type');
-
-            var availableHalf =
-                button.attr('data-available-half');
-
-            var unitPrice =
-                parseFloat(
-                    button.attr('data-unit-price') || 0
-                );
-
-            if (!slotId) {
-                alert(
-                    'Selected Hall slot is invalid.'
-                );
-
-                return;
-            }
-
-           
-
-            var hallToConfirm = {
-                hall_id:
-                    hallId,
-
-                hall_name:
-                    button.data(
-                        'hall-name'
-                    ) || '',
-
-                hall_type:
-                    button.data(
-                        'hall-type'
-                    ) || '',
-
-                slot_id:
-                    slotId,
-
-                slot_type:
-                    slotType,
-
-                slot_label:
-                    slotLabel,
-
-                booking_type:
-                    bookingType,
-
-                available_half:
-                    availableHalf,
-
-                unit_price:
-                    unitPrice,
-
-              
-                total_price:
-                    unitPrice *
-                    totalDays
-            };
-
-            var bookFromText =
-                getBookFromText();
-
-            var confirmationMessage =
-                'Are you sure you want to book from ' +
-                bookFromText +
-                '?';
-
-            if (
-                !window.confirm(
-                    confirmationMessage
-                )
-            ) {
-                return;
-            }
-
-            button
-                .prop(
-                    'disabled',
-                    true
-                )
-                .html(
-                    '<i class="fa fa-spinner fa-spin"></i> ' +
-                    'Checking...'
-                );
-
-            requestHallAvailability(
-                function (response) {
-
-                    button
-                        .prop(
-                            'disabled',
-                            false
-                        )
-                        .text(
-                            'Confirm Hall'
-                        );
-
-                    var items =
-                        getAvailabilityItems(
-                            response
-                        );
-
-                    if (
-                        !isSuccessResponse(
-                            response
-                        ) ||
-                        items.length === 0
-                    ) {
-                        alert(
-                            response.message ||
-                            'The selected Hall is no longer available.'
-                        );
-
-                        return;
-                    }
-
-                    if (
-                        !isSelectedSlotAvailable(
-                            items,
-                            hallToConfirm
-                        )
-                    ) {
-                        alert(
-                            hallToConfirm.hall_name +
-                            ' - ' +
-                            hallToConfirm.slot_label +
-                            ' is no longer available.'
-                        );
-
-                        return;
-                    }
-
-                    selectedHall =
-                        hallToConfirm;
-
-                    storeSelectedHallDetails();
-
-                    renderBookingSummary();
-
-                    $('.hall-section')
-                        .hide(500);
-
-                    $('.user-section')
-                        .show(500);
-
-                    $('html, body').animate(
-                        {
-                            scrollTop:
-                                $('.user-section')
-                                    .offset()
-                                    .top - 80
-                        },
-                        500
-                    );
-                },
-
-                function (message) {
-
-                    button
-                        .prop(
-                            'disabled',
-                            false
-                        )
-                        .text(
-                            'Confirm Hall'
-                        );
-
-                    alert(message);
-                }
-            );
-        }
-    );
-
-    function isSelectedSlotAvailable(
-        items,
-        hallToConfirm
-    ) {
-        var available = false;
-
-        $.each(
-            items,
-            function (index, item) {
-
-                var responseHallId =
-                    parseInt(
-                        item.hall_id ||
-                        item.id ||
-                        0
-                    );
-
-                if (
-                    responseHallId !==
-                    parseInt(
-                        hallToConfirm.hall_id
-                    )
-                ) {
-                    return;
-                }
-
-                var itemSlots = [];
-
-                createSlots(
-                    itemSlots,
-                    item
-                );
-
-                $.each(
-                    itemSlots,
-                    function (
-                        slotIndex,
-                        slot
-                    ) {
-                        if (
-                            parseInt(
-                                slot.slot_id
-                            ) ===
-                            parseInt(
-                                hallToConfirm.slot_id
-                            ) &&
-                            String(
-                                slot.slot_type
-                            ) ===
-                            String(
-                                hallToConfirm.slot_type
-                            )
-                        ) {
-                            available = true;
-                        }
-                    }
-                );
-            }
-        );
-
-        return available;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Hidden Hall inputs
-    |--------------------------------------------------------------------------
-    */
-
-    function storeSelectedHallDetails() {
-
-        if (!selectedHall) {
-            clearSelectedHallInputs();
-
-            return;
-        }
-
-        var hallArray = [
-            selectedHall
-        ];
-
-        $('#selected_hall_details')
-            .val(
-                JSON.stringify(
-                    hallArray
-                )
-            );
-
-        $('#hall_details')
-            .val(
-                JSON.stringify(
-                    hallArray
-                )
-            );
-
-        $('#hall_id').val(
-            selectedHall.hall_id
-        );
-
-        $('#slot_id').val(
-            selectedHall.slot_id
-        );
-
-        $('#slot_type').val(
-            selectedHall.slot_type
-        );
-
-        $('#booking_type').val(
-            selectedHall.booking_type
-        );
-
-        $('#available_half').val(
-            selectedHall.available_half
-        );
-
-        $('#total_halls').val(1);
-
-        updatePriceInputs(
-            selectedHall.total_price
-        );
-    }
-
-    function clearSelectedHallInputs() {
-
-        $('#selected_hall_details')
-            .val('');
-
-        $('#hall_details')
-            .val('');
-
-        $('#hall_id').val('');
-
-        $('#slot_id').val('');
-
-        // $('#slot_type').val('');
-
-        $('#booking_type').val('');
-
-        $('#available_half').val('');
-
-        $('#total_halls').val(0);
-
-        updatePriceInputs(0);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Booking summary
-    |--------------------------------------------------------------------------
-    */
-
-    function renderBookingSummary() {
-
-        if (!selectedHall) {
-            return;
-        }
-
-        var propertyName =
-            $('#property_id option:selected')
-                .text()
-                .trim()
-                .replace(
-                    /\s+/g,
-                    ' '
-                );
-
-        var bookingDetails = '';
-
-        bookingDetails +=
-            createSummaryRow(
-                'Property',
-                propertyName
-            );
-
-        bookingDetails +=
-            createSummaryRow(
-                'Booking Date',
-                $('#check_date').val()
-            );
-
-        bookingDetails +=
-            createSummaryRow(
-                'Hall',
-                selectedHall.hall_name
-            );
-
-        bookingDetails +=
-            createSummaryRow(
-                'Hall Type',
-                selectedHall.hall_type
-            );
-
-        bookingDetails +=
-            createSummaryRow(
-                'Slot',
-                selectedHall.slot_label
-            );
-
-        bookingDetails +=
-            createSummaryRow(
-                'Number of Days',
-                selectedHall.days
-            );
-
-        $('#bookingDetails').html(
-            bookingDetails
-        );
-
-        var priceDetails = '';
-
-        priceDetails +=
-            createSummaryRow(
-                'Hall Price',
-                '₹' +
-                selectedHall.total_price
-                    .toFixed(2)
-            );
-
-        priceDetails +=
-            createSummaryRow(
-                'GST',
-                '₹0.00'
-            );
-
-        priceDetails +=
-            createSummaryRow(
-                'Total Price',
-                '₹' +
-                selectedHall.total_price
-                    .toFixed(2)
-            );
-
-        $('#priceDetails').html(
-            priceDetails
-        );
-    }
-
-    function createSummaryRow(
-        label,
-        value
-    ) {
-        return (
-            '<div class="summary-row">' +
-
-                '<span class="summary-label">' +
-                    escapeHtml(label) +
-                '</span>' +
-
-                '<span class="summary-value">' +
-                    escapeHtml(value) +
-                '</span>' +
-
-            '</div>'
-        );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Back button
-    |--------------------------------------------------------------------------
-    */
-
-    $('#backToHall').on(
-        'click',
-        function () {
-
-            selectedHall = null;
-
-            clearSelectedHallInputs();
-
-            $('#bookingDetails')
-                .html('');
-
-            $('#priceDetails')
-                .html('');
-
-            $('.user-section')
-                .hide(500);
-
-            $('.hall-section')
-                .show(500);
-
-            $('html, body').animate(
-                {
-                    scrollTop:
-                        $('.hall-section')
-                            .offset()
-                            .top - 80
-                },
-                500
-            );
-        }
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Country to State
-    |--------------------------------------------------------------------------
-    */
-
-    $('#customer_country').on(
-        'change',
-        function () {
-
-            var countryValue =
-                $(this).val();
-
-            $('#customer_state').html(
-                '<option value="">' +
-                'Select State' +
-                '</option>'
-            );
-
-            $('#customer_city').html(
-                '<option value="">' +
-                'Select City' +
-                '</option>'
-            );
-
-            if (!countryValue) {
-                return;
-            }
-
-            var countryParts =
-                countryValue.split('~');
-
-            var countryId =
-                countryParts[1] || '';
-
-            if (!countryId) {
-                alert(
-                    'Invalid country selection.'
-                );
-
-                return;
-            }
-
-            $('#customer_state')
-                .prop(
-                    'disabled',
-                    true
-                );
-
-            $.ajax({
-                type: 'POST',
-
-                url:
-                    "{{ route('create-offline-hall-order') }}",
-
-                data: {
-                    _token:
-                        "{{ csrf_token() }}",
-
-                    request_type:
-                        'get_states_country',
-
-                    countryId:
-                        countryId
-                },
-
-                success: function (response) {
-
-                    $('#customer_state')
-                        .prop(
-                            'disabled',
-                            false
-                        );
-
-                    response =
-                        parseAjaxResponse(
-                            response
-                        );
-
-                    var optionsHtml =
-                        getOptionsHtml(
-                            response
-                        );
-
-                    if (!optionsHtml) {
-                        alert(
-                            response.message ||
-                            'No states found.'
-                        );
-
-                        return;
-                    }
-
-                    $('#customer_state')
-                        .html(
-                            optionsHtml
-                        );
-                },
-
-                error: function (xhr) {
-
-                    $('#customer_state')
-                        .prop(
-                            'disabled',
-                            false
-                        );
-
-                    alert(
-                        getAjaxError(
-                            xhr,
-                            'Unable to load states.'
-                        )
-                    );
-                }
-            });
-        }
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | State to City
-    |--------------------------------------------------------------------------
-    */
-
-    $('#customer_state').on(
-        'change',
-        function () {
-
-            var stateValue =
-                $(this).val();
-
-            $('#customer_city').html(
-                '<option value="">' +
-                'Select City' +
-                '</option>'
-            );
-
-            if (!stateValue) {
-                return;
-            }
-
-            var stateParts =
-                stateValue.split('~');
-
-            var stateId =
-                stateParts[1] || '';
-
-            if (!stateId) {
-                alert(
-                    'Invalid state selection.'
-                );
-
-                return;
-            }
-
-            $('#customer_city')
-                .prop(
-                    'disabled',
-                    true
-                );
-
-            $.ajax({
-                type: 'POST',
-
-                url:
-                    "{{ route('create-offline-hall-order') }}",
-
-                data: {
-                    _token:
-                        "{{ csrf_token() }}",
-
-                    request_type:
-                        'get_city_state',
-
-                    stateId:
-                        stateId
-                },
-
-                success: function (response) {
-
-                    $('#customer_city')
-                        .prop(
-                            'disabled',
-                            false
-                        );
-
-                    response =
-                        parseAjaxResponse(
-                            response
-                        );
-
-                    var optionsHtml =
-                        getOptionsHtml(
-                            response
-                        );
-
-                    if (!optionsHtml) {
-                        alert(
-                            response.message ||
-                            'No cities found.'
-                        );
-
-                        return;
-                    }
-
-                    $('#customer_city')
-                        .html(
-                            optionsHtml
-                        );
-                },
-
-                error: function (xhr) {
-
-                    $('#customer_city')
-                        .prop(
-                            'disabled',
-                            false
-                        );
-
-                    alert(
-                        getAjaxError(
-                            xhr,
-                            'Unable to load cities.'
-                        )
-                    );
-                }
-            });
-        }
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Payment required fields
-    |--------------------------------------------------------------------------
-    */
-
-    $('#payment_gateway').on(
-        'change',
-        function () {
-
-            updatePaymentRequiredFields();
-        }
-    );
-
-    updatePaymentRequiredFields();
-
-    function updatePaymentRequiredFields() {
-
-        var paymentMethod =
-            $('#payment_gateway').val();
-
-        if (
-            paymentMethod === 'hdfc'
-        ) {
-            $('.payment-required-field')
-                .attr(
-                    'required',
-                    true
-                );
-        } else {
-            $('.payment-required-field')
-                .removeAttr(
-                    'required'
-                );
-        }
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Submit form
-    |--------------------------------------------------------------------------
-    */
-
-    $('#offlineHallOrderForm').on(
-        'submit',
-        function (event) {
-
-            if (!selectedHall) {
-                event.preventDefault();
-
-                alert(
-                    'Please select and confirm a Hall.'
-                );
-
-                return false;
-            }
-
-            if (
-                !$('.user-section')
-                    .is(':visible')
-            ) {
-                event.preventDefault();
-
-                alert(
-                    'Please confirm the selected Hall.'
-                );
-
-                return false;
-            }
-
-            var phone =
-                $('#customer_phone')
-                    .val()
-                    .trim();
-
-            if (
-                !/^[0-9]{10}$/.test(
-                    phone
-                )
-            ) {
-                event.preventDefault();
-
-                alert(
-                    'Please enter a valid 10 digit phone number.'
-                );
-
-                return false;
-            }
-
-            storeSelectedHallDetails();
-
-            $('#request_type').val(
-                'create_hall_order'
-            );
-
-            $('#bookNow')
-                .prop(
-                    'disabled',
-                    true
-                )
-                .html(
-                    '<i class="fa fa-spinner fa-spin"></i> ' +
-                    'Booking...'
-                );
-        }
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Price inputs
-    |--------------------------------------------------------------------------
-    */
-
-    function updatePriceInputs(
-        totalPrice
-    ) {
-        totalPrice =
-            parseFloat(
-                totalPrice || 0
-            );
-
-        var taxAmount = 0;
-
-        var finalPrice =
-            totalPrice +
-            taxAmount;
-
-        $('#hall_price').val(
-            totalPrice.toFixed(2)
-        );
-
-        $('#total_service_price')
-            .val(
-                totalPrice.toFixed(2)
-            );
-
-        $('#sub_total_price').val(
-            totalPrice.toFixed(2)
-        );
-
-        $('#tax_amount').val(
-            taxAmount.toFixed(2)
-        );
-
-        $('#tax_percentage').val(
-            0
-        );
-
-        $('#total_order_price').val(
-            finalPrice.toFixed(2)
-        );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Reset Hall selection
-    |--------------------------------------------------------------------------
-    */
-
-    function resetHallSelection() {
-
-        selectedHall = null;
-
-        clearSelectedHallInputs();
-
-        $('#bookingDetails')
-            .html('');
-
-        $('#priceDetails')
-            .html('');
-
-        $('.user-section')
-            .hide();
-
-        $('.hall-section')
-            .show();
-
-        $('.confirm-hall-btn')
-            .prop(
-                'disabled',
-                false
-            )
-            .text(
-                'Confirm Hall'
-            );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Helper functions
-    |--------------------------------------------------------------------------
-    */
-
-    function getBookFromText() {
-
-        var bookFromText =
-            $('#book_from option:selected')
-                .text()
-                .trim()
-                .replace(
-                    /\s+/g,
-                    ' '
-                );
-
-        if (!bookFromText) {
-            bookFromText =
-                $('#book_from').val() ===
-                    'blocked'
-                    ? 'Blocked Inventory'
-                    : 'Live Inventory';
-        }
-
-        return bookFromText;
-    }
-
-    function getAvailabilityItems(
-        response
-    ) {
-        if (
-            response.data &&
-            Array.isArray(
-                response.data
-            )
-        ) {
-            return response.data;
-        }
-
-        if (
-            response.content &&
-            Array.isArray(
-                response.content
-            )
-        ) {
-            return response.content;
-        }
-
-        if (
-            response.content &&
-            response.content.data &&
-            Array.isArray(
-                response.content.data
-            )
-        ) {
-            return response.content.data;
-        }
-
-        return [];
-    }
-
-    function isSuccessResponse(
-        response
-    ) {
-        return (
-            response.status == 1 ||
-            response.status === true
-        );
-    }
-
-    function getOptionsHtml(
-        response
-    ) {
-        if (
-            typeof response.data ===
-            'string'
-        ) {
-            return response.data;
-        }
-
-        if (
-            typeof response.content ===
-            'string'
-        ) {
-            return response.content;
-        }
-
-        if (
-            typeof response.html ===
-            'string'
-        ) {
-            return response.html;
-        }
-
-        return '';
-    }
-
-    function showAvailabilityMessage(
-        message,
-        type
-    ) {
-        $('#availabilityMessage')
-            .removeClass(
-                'alert-success ' +
-                'alert-warning ' +
-                'alert-danger'
-            )
-            .addClass(
-                'alert alert-' +
-                type
-            )
-            .html(message)
-            .show();
-    }
-
-    function parseAjaxResponse(
-        response
-    ) {
-        if (
-            typeof response ===
-            'string'
-        ) {
-            try {
-                return JSON.parse(
-                    response
-                );
-            } catch (error) {
-                return {
-                    status: 0,
-                    message:
-                        'Invalid server response.'
-                };
-            }
-        }
-
-        return response;
-    }
-
-    function getAjaxError(
-        xhr,
-        defaultMessage
-    ) {
-        if (
-            xhr.responseJSON &&
-            xhr.responseJSON.message
-        ) {
-            return xhr.responseJSON
-                .message;
-        }
-
-        if (xhr.responseText) {
-            try {
-                var response =
-                    JSON.parse(
-                        xhr.responseText
-                    );
-
-                if (
-                    response.message
-                ) {
-                    return response.message;
-                }
-            } catch (error) {
-                console.log(
-                    xhr.responseText
-                );
-            }
-        }
-
-        return defaultMessage;
-    }
-
-    function normaliseToken(
-        value
-    ) {
-        return String(
-            value || ''
-        )
-            .trim()
-            .toUpperCase()
-            .replace(
-                /[\s-]+/g,
-                '_'
-            );
-    }
-
-    function escapeHtml(
-        value
-    ) {
-        return $('<div>')
-            .text(
-                value === null
-                    ? ''
-                    : value
-            )
-            .html();
-    }
-
-    function escapeAttribute(
-        value
-    ) {
-        return String(
-            value === null
-                ? ''
-                : value
-        )
-            .replace(
-                /&/g,
-                '&amp;'
-            )
-            .replace(
-                /"/g,
-                '&quot;'
-            )
-            .replace(
-                /'/g,
-                '&#039;'
-            )
-            .replace(
-                /</g,
-                '&lt;'
-            )
-            .replace(
-                />/g,
-                '&gt;'
-            );
-    }
-
-});
-</script> -->
 <script>
-$(document).ready(function () {
+    $(document).ready(function () {
 
-    var selectedHall = null;
+        var selectedHall = null;
+        var today = moment().startOf('day');
 
-    /*
-    |--------------------------------------------------------------------------
-    | Single Booking Date
-    |--------------------------------------------------------------------------
-    */
+        $('#check_date').daterangepicker({
+            singleDatePicker: true,
+            autoApply: true,
+            minDate: today,
+            startDate: today,
+            locale: {
+                format: 'DD MMM YYYY'
+            }
+        });
 
-    var today = moment().startOf('day');
-
-    $('#check_date').daterangepicker({
-        singleDatePicker: true,
-        autoApply: true,
-        minDate: today,
-        startDate: today,
-        locale: {
-            format: 'DD MMM YYYY'
-        }
-    });
-
-    $('#check_date').val(
-        today.format('DD MMM YYYY')
-    );
-
-    updateHiddenDates();
-
-    $('#check_date').on(
-        'apply.daterangepicker',
-        function (event, picker) {
-
-            var selectedDate =
-                picker.startDate.format('DD MMM YYYY');
-
-            $(this).val(selectedDate);
-
-            updateHiddenDates();
-
-            resetHallSelection();
-            hideHallResults();
-        }
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Update Hidden Date Fields
-    |--------------------------------------------------------------------------
-    | Hall booking is for ONE day only.
-    |--------------------------------------------------------------------------
-    */
-
-    function updateHiddenDates() {
-
-        var checkDate =
-            $('#check_date').val();
-
-        if (!checkDate) {
-            return;
-        }
-
-        var selectedDate = moment(
-            checkDate,
-            'DD MMM YYYY',
-            true
+        $('#check_date').val(
+            today.format('DD MMM YYYY')
         );
 
-        if (!selectedDate.isValid()) {
-            return;
-        }
+        updateHiddenDates();
 
-        var formattedDate =
-            selectedDate.format('YYYY-MM-DD');
+        $('#check_date').on('apply.daterangepicker',
+            function (event, picker) {
 
-        $('#start_date').val(
-            formattedDate
-        );
+                var selectedDate =
+                    picker.startDate.format('DD MMM YYYY');
 
-        $('#end_date').val(
-            formattedDate
+                $(this).val(selectedDate);
+
+                updateHiddenDates();
+
+                resetHallSelection();
+                hideHallResults();
+            }
         );
 
         /*
-        | Single day booking
+        |--------------------------------------------------------------------------
+        | Update Hidden Date Fields
+        |--------------------------------------------------------------------------
+        | Hall booking is for ONE day only.
+        |--------------------------------------------------------------------------
         */
-        $('#total_days').val(1);
-    }
 
+        function updateHiddenDates() {
+            var checkDate = $('#check_date').val();
+            if (!checkDate) {
+                return;
+            }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Property / Category / Book From Change
-    |--------------------------------------------------------------------------
-    */
+            var selectedDate = moment(checkDate,'DD MMM YYYY', true);
 
-    $('#property_id, #hall_category_id, #book_from').on(
-        'change',
-        function () {
+            if (!selectedDate.isValid()) {
+                return;
+            }
 
-            resetHallSelection();
+            var formattedDate = selectedDate.format('YYYY-MM-DD');
 
-            hideHallResults();
+            $('#start_date').val(
+                formattedDate
+            );
+
+            $('#end_date').val(
+                formattedDate
+            );
+
+            $('#total_days').val(1);
         }
-    );
 
 
-    function hideHallResults() {
+        /*
+        |--------------------------------------------------------------------------
+        | Property / Category / Book From Change
+        |--------------------------------------------------------------------------
+        */
 
-        $('.hall-result-section')
-            .hide();
-
-        $('#hallData')
-            .html('');
-
-        $('#availabilityMessage')
-            .hide()
-            .html('');
-    }
+        $('#property_id, #hall_category_id, #book_from').on('change', function () {
+                resetHallSelection();
+                hideHallResults();
+            }
+        );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Check Hall Availability
-    |--------------------------------------------------------------------------
-    */
+        function hideHallResults() {
+            $('.hall-result-section').hide();
+            $('#hallData').html('');
+            $('#availabilityMessage').hide().html('');
+        }
 
-    $('#checkAvailability').on(
-        'click',
-        function () {
+        /*
+        |--------------------------------------------------------------------------
+        | Check Hall Availability
+        |--------------------------------------------------------------------------
+        */
 
-            var propertyId =
-                $('#property_id').val();
-
-            var hallCategoryId =
-                $('#hall_category_id').val();
-
-            var bookFrom =
-                $('#book_from').val();
-
-            var checkDate =
-                $('#check_date').val();
-
-            var slotType =
-                $('#slot_type').val();
-
+        $('#checkAvailability').on('click',function () {
+            var propertyId = $('#property_id').val();
+            var hallCategoryId = $('#hall_category_id').val();
+            var bookFrom = $('#book_from').val();
+            var checkDate = $('#check_date').val();
+            var slotType = $('#slot_type').val();
 
             if (!propertyId) {
-
-                alert(
-                    'Please select a property.'
-                );
-
+                alert('Please select a property.');
                 return;
             }
-
 
             if (!hallCategoryId) {
-
-                alert(
-                    'Please select Hall Category.'
-                );
-
+                alert('Please select Hall Category.');
                 return;
             }
-
 
             if (!bookFrom) {
-
-                alert(
-                    'Please select Book From.'
-                );
-
+                alert('Please select Book From.');
                 return;
             }
-
 
             if (!checkDate) {
-
-                alert(
-                    'Please select Booking Date.'
-                );
-
+                alert('Please select Booking Date.');
                 return;
             }
 
-
-            /*
-            | Make sure hidden fields contain
-            | the same single booking date.
-            */
             updateHiddenDates();
-
             resetHallSelection();
+            $('#availabilityLoader').show();
+            $('#availabilityMessage').hide().html('');
+            $('.hall-result-section').hide();
+            $('#hallData').html('');
 
-            $('#availabilityLoader')
-                .show();
+            requestHallAvailability(function (response) {
+                $('#availabilityLoader').hide();
 
-            $('#availabilityMessage')
-                .hide()
-                .html('');
-
-            $('.hall-result-section')
-                .hide();
-
-            $('#hallData')
-                .html('');
-
-
-            requestHallAvailability(
-
-                function (response) {
-
-                    $('#availabilityLoader')
-                        .hide();
-
-                    var hallItems =
-                        getAvailabilityItems(
-                            response
+                var hallItems = getAvailabilityItems(response);
+                    if (!isSuccessResponse(response) || hallItems.length === 0) {
+                        showAvailabilityMessage( response.message || 'No Hall is available for the selected date.','warning'
                         );
-
-
-                    if (
-                        !isSuccessResponse(
-                            response
-                        ) ||
-                        hallItems.length === 0
-                    ) {
-
-                        showAvailabilityMessage(
-                            response.message ||
-                            'No Hall is available for the selected date.',
-                            'warning'
-                        );
-
                         return;
                     }
+                renderHallRows(hallItems);
+            },
+
+            function (message) {
+                $('#availabilityLoader').hide();
+                showAvailabilityMessage(message,'danger');
+            }
+            );
+        });
 
 
-                    renderHallRows(
-                        hallItems
-                    );
+        /*
+        |--------------------------------------------------------------------------
+        | AJAX - Check Hall Availability
+        |--------------------------------------------------------------------------
+        */
+
+        function requestHallAvailability(successCallback,errorCallback) {
+            $.ajax({
+
+                type: 'POST',
+                url: "{{ route('create-offline-hall-order') }}",
+                data: {
+
+                    _token: "{{ csrf_token() }}",
+                    request_type: 'check_hall_availability',
+                    property_id: $('#property_id').val(),
+                    hall_category_id: $('#hall_category_id').val(),
+                    book_from: $('#book_from').val(),
+                    check_date: $('#check_date').val(),
+                    start_date: $('#start_date').val(),
+                    end_date: $('#end_date').val(),
+                    slot_type: $('#slot_type').val()
+
                 },
 
+                success: function (response) {
+                    successCallback(parseAjaxResponse(response));
+                },
 
-                function (message) {
-
-                    $('#availabilityLoader')
-                        .hide();
-
-                    showAvailabilityMessage(
-                        message,
-                        'danger'
-                    );
+                error: function (xhr) {
+                    errorCallback(getAjaxError(xhr,'Unable to check Hall availability.'));
                 }
-            );
+            });
         }
-    );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | AJAX - Check Hall Availability
-    |--------------------------------------------------------------------------
-    */
+        /*
+        |--------------------------------------------------------------------------
+        | Render Hall Rows
+        |--------------------------------------------------------------------------
+        */
 
-    function requestHallAvailability(
-        successCallback,
-        errorCallback
-    ) {
+        function renderHallRows(items) {
+            var groupedHalls = {};
+            var selectedSlotType = $('#slot_type').val();
 
-        $.ajax({
-
-            type: 'POST',
-
-            url:
-                "{{ route('create-offline-hall-order') }}",
-
-            data: {
-
-                _token:
-                    "{{ csrf_token() }}",
-
-                request_type:
-                    'check_hall_availability',
-
-                property_id:
-                    $('#property_id').val(),
-
-                hall_category_id:
-                    $('#hall_category_id').val(),
-
-                book_from:
-                    $('#book_from').val(),
-
-                /*
-                | Single booking date
-                */
-                check_date:
-                    $('#check_date').val(),
-
-                /*
-                | Keep these because your backend
-                | may still receive them.
-                | Both contain the SAME date.
-                */
-                start_date:
-                    $('#start_date').val(),
-
-                end_date:
-                    $('#end_date').val(),
-
-                /*
-                | Selected slot
-                */
-                slot_type:
-                    $('#slot_type').val()
-            },
-
-            success: function (response) {
-
-                successCallback(
-                    parseAjaxResponse(
-                        response
-                    )
-                );
-            },
-
-            error: function (xhr) {
-
-                errorCallback(
-                    getAjaxError(
-                        xhr,
-                        'Unable to check Hall availability.'
-                    )
-                );
-            }
-        });
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Render Hall Rows
-    |--------------------------------------------------------------------------
-    */
-
-    function renderHallRows(items) {
-
-        var groupedHalls = {};
-
-        var selectedSlotType =
-            $('#slot_type').val();
-
-
-        $.each(
-            items,
-            function (index, item) {
-
-                var hallId =
-                    parseInt(
-                        item.hall_id ||
-                        item.id ||
-                        0
-                    );
-
+            $.each(items,function (index, item) {
+                var hallId = parseInt(item.hall_id || item.id || 0);
 
                 if (!hallId) {
                     return;
                 }
 
-
                 if (!groupedHalls[hallId]) {
-
                     groupedHalls[hallId] = {
-
-                        hall_id:
-                            hallId,
-
-                        hall_name:
-                            item.hall_name ||
-                            item.name ||
-                            '',
-
-                        hall_type:
-                            item.hcategory_name ||
-                            item.hall_type ||
-                            item.category_name ||
-                            '',
-
-                        slots: []
-                    };
+                        hall_id:hallId,
+                        hall_name: item.hall_name || item.name || '',
+                        hall_type: item.hcategory_name || item.hall_type || item.category_name || '',
+                            slots: []
+                        };
                 }
 
-
-                createSlots(
-                    groupedHalls[hallId].slots,
-                    item
-                );
-            }
-        );
+                createSlots(groupedHalls[hallId].slots,item);
+            });
 
 
-        var html = '';
+            var html = '';
 
-
-        $.each(
-            groupedHalls,
-            function (hallId, hall) {
-
+            $.each(groupedHalls,function (hallId, hall) {
                 var selectedSlot = null;
-
-
-                $.each(
-                    hall.slots,
-                    function (
-                        slotIndex,
-                        slot
-                    ) {
-
-                        if (
-                            slot.slot_type ===
-                            selectedSlotType
-                        ) {
-
-                            selectedSlot =
-                                slot;
-
-                            return false;
-                        }
+                $.each(hall.slots,function (slotIndex,slot) {
+                    if (slot.slot_type === selectedSlotType) {
+                        selectedSlot = slot;
+                        return false;
                     }
-                );
-
+                });
 
                 if (!selectedSlot) {
                     return;
                 }
 
+                var displaySlotName = selectedSlotType === 'FULL_DAY' ? 'Full Day' : selectedSlotType === 'FIRST_HALF' ? 'First Half' : 'Second Half';
 
-                var displaySlotName =
-                    selectedSlotType === 'FULL_DAY'
-                        ? 'Full Day'
-                        : selectedSlotType === 'FIRST_HALF'
-                            ? 'First Half'
-                            : 'Second Half';
-
-
-                html +=
-                    '<tr>' +
-
-                        '<td>' +
-
-                            '<h4 class="hall-name">' +
-
-                                escapeHtml(
-                                    hall.hall_name
-                                ) +
-
-                            '</h4>' +
-
-                            (
-                                hall.hall_type
-
-                                    ? '<p class="hall-information">' +
-
-                                        escapeHtml(
-                                            hall.hall_type
-                                        ) +
-
-                                      '</p>'
-
-                                    : ''
-                            ) +
-
-                        '</td>' +
-
-
-                        '<td>' +
-
-                            '<span class="slot-price-label">' +
-
-                                'Price: ₹' +
-
-                                parseFloat(
-                                    selectedSlot.unit_price || 0
-                                ).toFixed(2) +
-
-                                ' (' +
-
-                                displaySlotName +
-
-                                ')' +
-
-                            '</span>' +
-
-
-                            '<button ' +
-
-                                'type="button" ' +
-
-                                'class="btn btn-primary btn-block confirm-hall-btn" ' +
-
-                                'data-hall-id="' +
-                                    hall.hall_id +
-                                '" ' +
-
-                                'data-hall-name="' +
-                                    escapeAttribute(
+                    html +=
+                        '<tr>' +
+                            '<td>' +
+                                '<h4 class="hall-name">' +
+                                    escapeHtml(
                                         hall.hall_name
                                     ) +
-                                '" ' +
+                                '</h4>' +
 
-                                'data-hall-type="' +
-                                    escapeAttribute(
-                                        hall.hall_type
-                                    ) +
-                                '" ' +
+                                (hall.hall_type ? '<p class="hall-information">' + escapeHtml(hall.hall_type) + '</p>' : '') +
+                            '</td>' +
+                            '<td>' +
+                                '<span class="slot-price-label">' +
+                                    'Price: ₹' +
+                                    parseFloat(
+                                        selectedSlot.unit_price || 0
+                                    ).toFixed(2) +' (' + displaySlotName + ')' +
+                                '</span>' +
+                                '<button ' +'type="button" ' + 'class="btn btn-primary btn-block confirm-hall-btn" ' + 'data-hall-id="' + hall.hall_id + '" ' +
+                                    'data-hall-name="' + escapeAttribute(hall.hall_name) +'" ' +
+                                    'data-hall-type="' + escapeAttribute(hall.hall_type) + '" ' +
+                                    'data-slot-id="' + selectedSlot.slot_id + '" ' +
+                                    'data-slot-type="' + selectedSlot.slot_type + '" ' +
+                                    'data-slot-label="' + displaySlotName + '" ' +
+                                    'data-booking-type="' + selectedSlot.booking_type + '" ' +
+                                    'data-available-half="' + selectedSlot.available_half + '" ' +
+                                    'data-unit-price="' + selectedSlot.unit_price + '">' +
+                                    'Confirm Hall' +
+                                '</button>' +
+                            '</td>' +
+                        '</tr>';
+                }
+            );
 
-                                'data-slot-id="' +
-                                    selectedSlot.slot_id +
-                                '" ' +
 
-                                'data-slot-type="' +
-                                    selectedSlot.slot_type +
-                                '" ' +
-
-                                'data-slot-label="' +
-                                    displaySlotName +
-                                '" ' +
-
-                                'data-booking-type="' +
-                                    selectedSlot.booking_type +
-                                '" ' +
-
-                                'data-available-half="' +
-                                    selectedSlot.available_half +
-                                '" ' +
-
-                                'data-unit-price="' +
-                                    selectedSlot.unit_price +
-                                '">' +
-
-                                'Confirm Hall' +
-
-                            '</button>' +
-
-                        '</td>' +
-
-                    '</tr>';
+            if (!html) {
+                showAvailabilityMessage('No Hall slot is available for the selected date.','warning');
+                return;
             }
-        );
 
+            $('#hallData')
+                .html(html);
 
-        if (!html) {
-
-            showAvailabilityMessage(
-                'No Hall slot is available for the selected date.',
-                'warning'
-            );
-
-            return;
+            $('.hall-result-section')
+                .show();
         }
 
-
-        $('#hallData')
-            .html(html);
-
-        $('.hall-result-section')
-            .show();
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Create Slot Options
-    |--------------------------------------------------------------------------
-    */
-
-    function createSlots(
-        slotList,
-        item
-    ) {
-
-        var slotType =
-            normaliseToken(
-                item.booking_type ||
-                item.slot_type ||
-                item.slotType ||
-                ''
-            );
-
-
-        var availableHalf =
-            normaliseToken(
-                item.available_half ||
-                item.availableHalf ||
-                ''
-            );
-
-
-        var slotId =
-            item.slot_id ||
-            item.slotId ||
-            item.id ||
-            0;
-
-
         /*
-        | Full Day
+        |--------------------------------------------------------------------------
+        | Create Slot Options
+        |--------------------------------------------------------------------------
         */
 
-        if (
-            slotType === 'FULL_DAY'
-        ) {
+        function createSlots(slotList,item) {
+            var slotType = normaliseToken(item.booking_type || item.slot_type || item.slotType || '');
+            var availableHalf = normaliseToken(item.available_half || item.availableHalf || '');
+            var slotId = item.slot_id || item.slotId || item.id || 0;
 
-            addUniqueSlot(
-                slotList,
-                {
+            if (slotType === 'FULL_DAY') {
+                addUniqueSlot(slotList,{
+                    slot_id:slotId,
+                    slot_type: 'FULL_DAY',
+                    slot_label:  'Full Day',
+                    booking_type: item.booking_type || 'FULL_DAY',
+                    available_half: 'FULL_DAY',
+                    unit_price: getSlotPrice(item,'FULL_DAY')
+                });
+                return;
+            }
 
-                    slot_id:
-                        slotId,
+            if (slotType === 'FIRST_HALF' || availableHalf === 'FIRST_HALF') {
+                addUniqueSlot(slotList,{
+                    slot_id: slotId,
+                    slot_type: 'FIRST_HALF',
+                    slot_label: 'First Half',
+                    booking_type: item.booking_type || 'HALF_DAY',
+                    available_half: 'FIRST_HALF',
+                    unit_price: getSlotPrice(item,'FIRST_HALF')
+                });
+            }
 
-                    slot_type:
-                        'FULL_DAY',
+            if (slotType === 'SECOND_HALF' || availableHalf === 'SECOND_HALF') {
+                addUniqueSlot(slotList,{
+                    slot_id: slotId,
+                    slot_type: 'SECOND_HALF',
+                    slot_label: 'Second Half',
+                    booking_type: item.booking_type || 'HALF_DAY',
+                    available_half: 'SECOND_HALF',
+                    unit_price: getSlotPrice(item,'SECOND_HALF')
+                });
+            }
 
-                    slot_label:
-                        'Full Day',
+            if (slotType === 'HALF_DAY' && (availableHalf === 'FIRST_HALF_OR_SECOND_HALF' || availableHalf ==='BOTH' || availableHalf === 'FULL_DAY' || availableHalf === '')) {
 
-                    booking_type:
-                        item.booking_type ||
-                        'FULL_DAY',
+                addUniqueSlot(slotList,{
+                    slot_id: slotId,
+                    slot_type:'FIRST_HALF',
+                    slot_label:'First Half',
+                    booking_type: item.booking_type || 'HALF_DAY',
+                    available_half: 'FIRST_HALF',
+                    unit_price: getSlotPrice(item,'FIRST_HALF')
+                });
 
-                    available_half:
-                        'FULL_DAY',
-
-                    unit_price:
-                        getSlotPrice(
-                            item,
-                            'FULL_DAY'
-                        )
-                }
-            );
-
-            return;
+                addUniqueSlot(slotList,{
+                    slot_id: slotId,
+                    slot_type:'SECOND_HALF',
+                    slot_label: 'Second Half',
+                    booking_type: item.booking_type || 'HALF_DAY',
+                    available_half:'SECOND_HALF',
+                    unit_price: getSlotPrice(item,'SECOND_HALF')
+                });
+            }
         }
 
-
         /*
-        | First Half
+        |--------------------------------------------------------------------------
+        | Slot Price
+        |--------------------------------------------------------------------------
         */
 
-        if (
-            slotType === 'FIRST_HALF' ||
-            availableHalf === 'FIRST_HALF'
-        ) {
+        function getSlotPrice(item,slotType) {
+            var price = 0;
+            if (slotType === 'FULL_DAY') {
+                price =item.full_day_price || item.price || item.slot_price || item.sell_price || 0;
+            }
 
-            addUniqueSlot(
-                slotList,
-                {
+            if (slotType === 'FIRST_HALF') {
+                price =item.first_half_price || item.half_day_price || item.price || item.slot_price || item.sell_price || 0;
+            }
 
-                    slot_id:
-                        slotId,
+            if (slotType === 'SECOND_HALF') {
+                price = item.second_half_price || item.half_day_price || item.price || item.slot_price || item.sell_price || 0;
+            }
 
-                    slot_type:
-                        'FIRST_HALF',
-
-                    slot_label:
-                        'First Half',
-
-                    booking_type:
-                        item.booking_type ||
-                        'HALF_DAY',
-
-                    available_half:
-                        'FIRST_HALF',
-
-                    unit_price:
-                        getSlotPrice(
-                            item,
-                            'FIRST_HALF'
-                        )
-                }
-            );
+            price = parseFloat(price);
+            
+            return isNaN(price) ? 0 : price;
         }
 
 
         /*
-        | Second Half
+        |--------------------------------------------------------------------------
+        | Add Unique Slot
+        |--------------------------------------------------------------------------
         */
 
-        if (
-            slotType === 'SECOND_HALF' ||
-            availableHalf === 'SECOND_HALF'
-        ) {
+        function addUniqueSlot(slotList,newSlot) {
+            var exists = slotList.some(function (slot) {
+                return (
+                    String(slot.slot_id) === String(newSlot.slot_id) && String(slot.slot_type) === String(newSlot.slot_type)
+                );
+            });
 
-            addUniqueSlot(
-                slotList,
-                {
-
-                    slot_id:
-                        slotId,
-
-                    slot_type:
-                        'SECOND_HALF',
-
-                    slot_label:
-                        'Second Half',
-
-                    booking_type:
-                        item.booking_type ||
-                        'HALF_DAY',
-
-                    available_half:
-                        'SECOND_HALF',
-
-                    unit_price:
-                        getSlotPrice(
-                            item,
-                            'SECOND_HALF'
-                        )
-                }
-            );
+            if (!exists) {
+                slotList.push(newSlot);
+            }
         }
 
 
         /*
-        | Generic Half Day
+        |--------------------------------------------------------------------------
+        | Confirm Hall
+        |--------------------------------------------------------------------------
         */
 
-        if (
-            slotType === 'HALF_DAY' &&
-            (
-                availableHalf ===
-                    'FIRST_HALF_OR_SECOND_HALF' ||
-
-                availableHalf ===
-                    'BOTH' ||
-
-                availableHalf ===
-                    'FULL_DAY' ||
-
-                availableHalf === ''
-            )
-        ) {
-
-            addUniqueSlot(
-                slotList,
-                {
-
-                    slot_id:
-                        slotId,
-
-                    slot_type:
-                        'FIRST_HALF',
-
-                    slot_label:
-                        'First Half',
-
-                    booking_type:
-                        item.booking_type ||
-                        'HALF_DAY',
-
-                    available_half:
-                        'FIRST_HALF',
-
-                    unit_price:
-                        getSlotPrice(
-                            item,
-                            'FIRST_HALF'
-                        )
-                }
-            );
-
-
-            addUniqueSlot(
-                slotList,
-                {
-
-                    slot_id:
-                        slotId,
-
-                    slot_type:
-                        'SECOND_HALF',
-
-                    slot_label:
-                        'Second Half',
-
-                    booking_type:
-                        item.booking_type ||
-                        'HALF_DAY',
-
-                    available_half:
-                        'SECOND_HALF',
-
-                    unit_price:
-                        getSlotPrice(
-                            item,
-                            'SECOND_HALF'
-                        )
-                }
-            );
-        }
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Slot Price
-    |--------------------------------------------------------------------------
-    */
-
-    function getSlotPrice(
-        item,
-        slotType
-    ) {
-
-        var price = 0;
-
-
-        if (
-            slotType === 'FULL_DAY'
-        ) {
-
-            price =
-                item.full_day_price ||
-                item.price ||
-                item.slot_price ||
-                item.sell_price ||
-                0;
-        }
-
-
-        if (
-            slotType === 'FIRST_HALF'
-        ) {
-
-            price =
-                item.first_half_price ||
-                item.half_day_price ||
-                item.price ||
-                item.slot_price ||
-                item.sell_price ||
-                0;
-        }
-
-
-        if (
-            slotType === 'SECOND_HALF'
-        ) {
-
-            price =
-                item.second_half_price ||
-                item.half_day_price ||
-                item.price ||
-                item.slot_price ||
-                item.sell_price ||
-                0;
-        }
-
-
-        price =
-            parseFloat(price);
-
-
-        return isNaN(price)
-            ? 0
-            : price;
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Add Unique Slot
-    |--------------------------------------------------------------------------
-    */
-
-    function addUniqueSlot(
-        slotList,
-        newSlot
-    ) {
-
-        var exists =
-            slotList.some(
-                function (slot) {
-
-                    return (
-
-                        String(
-                            slot.slot_id
-                        ) ===
-                        String(
-                            newSlot.slot_id
-                        ) &&
-
-                        String(
-                            slot.slot_type
-                        ) ===
-                        String(
-                            newSlot.slot_type
-                        )
-                    );
-                }
-            );
-
-
-        if (!exists) {
-
-            slotList.push(
-                newSlot
-            );
-        }
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Confirm Hall
-    |--------------------------------------------------------------------------
-    */
-
-    $(document).on(
-        'click',
-        '.confirm-hall-btn',
-        function () {
-
-            var button =
-                $(this);
-
-
-            var hallId =
-                parseInt(
-                    button.data(
-                        'hall-id'
-                    )
-                );
-
-
-            var slotId =
-                parseInt(
-                    button.attr(
-                        'data-slot-id'
-                    )
-                );
-
-
-            var slotType =
-                button.attr(
-                    'data-slot-type'
-                );
-
-
-            var slotLabel =
-                button.attr(
-                    'data-slot-label'
-                );
-
-
-            var bookingType =
-                button.attr(
-                    'data-booking-type'
-                );
-
-
-            var availableHalf =
-                button.attr(
-                    'data-available-half'
-                );
-
-
-            var unitPrice =
-                parseFloat(
-                    button.attr(
-                        'data-unit-price'
-                    ) || 0
-                );
+        $(document).on('click','.confirm-hall-btn',function () {
+            var button = $(this);
+            var hallId = parseInt(button.data('hall-id'));
+            var slotId = parseInt(button.attr('data-slot-id'));
+            var slotType = button.attr('data-slot-type');
+            var slotLabel = button.attr('data-slot-label');
+            var bookingType = button.attr('data-booking-type');
+            var availableHalf = button.attr('data-available-half');
+            var unitPrice = parseFloat(button.attr('data-unit-price') || 0);
 
 
             if (!slotId) {
-
-                alert(
-                    'Selected Hall slot is invalid.'
-                );
-
+                alert('Selected Hall slot is invalid.');
                 return;
             }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | IMPORTANT
-            |--------------------------------------------------------------------------
-            | Single day booking.
-            |
-            | OLD:
-            | totalDays
-            |
-            | NEW:
-            | 1
-            |--------------------------------------------------------------------------
-            */
 
             var hallToConfirm = {
-
-                hall_id:
-                    hallId,
-
-                hall_name:
-                    button.data(
-                        'hall-name'
-                    ) || '',
-
-                hall_type:
-                    button.data(
-                        'hall-type'
-                    ) || '',
-
-                slot_id:
-                    slotId,
-
-                slot_type:
-                    slotType,
-
-                slot_label:
-                    slotLabel,
-
-                booking_type:
-                    bookingType,
-
-                available_half:
-                    availableHalf,
-
-                unit_price:
-                    unitPrice,
-
-                /*
-                | Single day = unit price
-                */
-                total_price:
-                    unitPrice,
-
-                /*
-                | Keep number of days for summary
-                */
-                days:
-                    1
+                hall_id:hallId,
+                hall_name: button.data('hall-name') || '',
+                hall_type: button.data('hall-type') || '',
+                slot_id:slotId,
+                slot_type:slotType,
+                slot_label:slotLabel,
+                booking_type: bookingType,
+                available_half: availableHalf,
+                unit_price: unitPrice,
+                total_price: unitPrice,
+                days: 1
             };
 
+            var bookFromText = getBookFromText();
+            var confirmationMessage = 'Are you sure you want to book from ' + bookFromText + '?';
 
-            var bookFromText =
-                getBookFromText();
-
-
-            var confirmationMessage =
-                'Are you sure you want to book from ' +
-                bookFromText +
-                '?';
-
-
-            if (
-                !window.confirm(
-                    confirmationMessage
-                )
-            ) {
+            if (!window.confirm(confirmationMessage)) {
                 return;
             }
 
-
-            button
-                .prop(
-                    'disabled',
-                    true
-                )
-                .html(
-                    '<i class="fa fa-spinner fa-spin"></i> ' +
-                    'Checking...'
-                );
-
-
-            /*
-            | Re-check availability before confirmation.
-            | This is important for concurrent bookings.
-            */
-
-            requestHallAvailability(
-
-                function (response) {
-
-                    button
-                        .prop(
-                            'disabled',
-                            false
-                        )
-                        .text(
-                            'Confirm Hall'
-                        );
-
-
-                    var items =
-                        getAvailabilityItems(
-                            response
-                        );
-
-
-                    if (
-                        !isSuccessResponse(
-                            response
-                        ) ||
-                        items.length === 0
-                    ) {
-
-                        alert(
-                            response.message ||
-                            'The selected Hall is no longer available.'
-                        );
-
-                        return;
-                    }
-
-
-                    if (
-                        !isSelectedSlotAvailable(
-                            items,
-                            hallToConfirm
-                        )
-                    ) {
-
-                        alert(
-
-                            hallToConfirm.hall_name +
-                            ' - ' +
-                            hallToConfirm.slot_label +
-                            ' is no longer available.'
-                        );
-
-                        return;
-                    }
-
-
-                    selectedHall =
-                        hallToConfirm;
-
-
-                    storeSelectedHallDetails();
-
-                    renderBookingSummary();
-
-
-                    $('.hall-section')
-                        .hide(500);
-
-                    $('.user-section')
-                        .show(500);
-
-
-                    $('html, body')
-                        .animate(
-                            {
-                                scrollTop:
-                                    $('.user-section')
-                                        .offset()
-                                        .top - 80
-                            },
-                            500
-                        );
-                },
-
-
-                function (message) {
-
-                    button
-                        .prop(
-                            'disabled',
-                            false
-                        )
-                        .text(
-                            'Confirm Hall'
-                        );
-
-
-                    alert(message);
-                }
-            );
-        }
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Check Selected Slot
-    |--------------------------------------------------------------------------
-    */
-
-    function isSelectedSlotAvailable(
-        items,
-        hallToConfirm
-    ) {
-
-        var available = false;
-
-
-        $.each(
-            items,
-            function (index, item) {
-
-                var responseHallId =
-                    parseInt(
-                        item.hall_id ||
-                        item.id ||
-                        0
+            button.prop('disabled',true)
+                    .html(
+                        '<i class="fa fa-spinner fa-spin"></i> ' +
+                        'Checking...'
                     );
 
+                requestHallAvailability(
+                    function (response) {
+                        button.prop('disabled',false).text('Confirm Hall');
+                        var items = getAvailabilityItems(response);
 
-                if (
-                    responseHallId !==
-                    parseInt(
-                        hallToConfirm.hall_id
-                    )
-                ) {
-                    return;
-                }
-
-
-                var itemSlots = [];
-
-
-                createSlots(
-                    itemSlots,
-                    item
-                );
-
-
-                $.each(
-                    itemSlots,
-                    function (
-                        slotIndex,
-                        slot
-                    ) {
-
-                        if (
-
-                            parseInt(
-                                slot.slot_id
-                            ) ===
-                            parseInt(
-                                hallToConfirm.slot_id
-                            ) &&
-
-                            String(
-                                slot.slot_type
-                            ) ===
-                            String(
-                                hallToConfirm.slot_type
-                            )
-                        ) {
-
-                            available = true;
+                        if (!isSuccessResponse(response) || items.length === 0) {
+                            alert(response.message || 'The selected Hall is no longer available.');
+                            return;
                         }
+
+                        if (!isSelectedSlotAvailable(items,hallToConfirm)) {
+
+                            alert(hallToConfirm.hall_name + ' - ' + hallToConfirm.slot_label + ' is no longer available.');
+                            return;
+                        }
+
+                        selectedHall = hallToConfirm;
+
+                        storeSelectedHallDetails();
+                        renderBookingSummary();
+
+
+                        $('.hall-section').hide(500);
+                        $('.user-section').show(500);
+                        $('html, body').animate({scrollTop: $('.user-section') .offset() .top - 80},500);
+                    },
+
+
+                    function (message) {
+                        button.prop('disabled',false).text('Confirm Hall');
+                        alert(message);
                     }
                 );
             }
         );
-
-
-        return available;
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Store Selected Hall
-    |--------------------------------------------------------------------------
-    */
-
-    function storeSelectedHallDetails() {
-
-        if (!selectedHall) {
-
-            clearSelectedHallInputs();
-
-            return;
-        }
-
-
-        var hallArray = [
-            selectedHall
-        ];
-
-
-        $('#selected_hall_details')
-            .val(
-                JSON.stringify(
-                    hallArray
-                )
-            );
-
-
-        $('#hall_details')
-            .val(
-                JSON.stringify(
-                    hallArray
-                )
-            );
-
-
-        $('#hall_id').val(
-            selectedHall.hall_id
-        );
-
-
-        $('#slot_id').val(
-            selectedHall.slot_id
-        );
-
-
-        $('#slot_type').val(
-            selectedHall.slot_type
-        );
-
-
-        $('#booking_type').val(
-            selectedHall.booking_type
-        );
-
-
-        $('#available_half').val(
-            selectedHall.available_half
-        );
-
-
-        $('#total_halls').val(1);
-
-
-        updatePriceInputs(
-            selectedHall.total_price
-        );
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Clear Selected Hall
-    |--------------------------------------------------------------------------
-    */
-
-    function clearSelectedHallInputs() {
-
-        $('#selected_hall_details')
-            .val('');
-
-        $('#hall_details')
-            .val('');
-
-        $('#hall_id')
-            .val('');
-
-        $('#slot_id')
-            .val('');
-
-        $('#booking_type')
-            .val('');
-
-        $('#available_half')
-            .val('');
-
-        $('#total_halls')
-            .val(0);
-
-
-        updatePriceInputs(0);
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Booking Summary
-    |--------------------------------------------------------------------------
-    */
-
-    function renderBookingSummary() {
-
-        if (!selectedHall) {
-            return;
-        }
-
-
-        var propertyName =
-            $('#property_id option:selected')
-                .text()
-                .trim()
-                .replace(
-                    /\s+/g,
-                    ' '
-                );
-
-
-        var bookingDetails = '';
-
-
-        bookingDetails +=
-            createSummaryRow(
-                'Property',
-                propertyName
-            );
-
-
-        bookingDetails +=
-            createSummaryRow(
-                'Booking Date',
-                $('#check_date').val()
-            );
-
-
-        bookingDetails +=
-            createSummaryRow(
-                'Hall',
-                selectedHall.hall_name
-            );
-
-
-        bookingDetails +=
-            createSummaryRow(
-                'Hall Type',
-                selectedHall.hall_type
-            );
-
-
-        bookingDetails +=
-            createSummaryRow(
-                'Slot',
-                selectedHall.slot_label
-            );
 
 
         /*
-        | Single day booking
+        |--------------------------------------------------------------------------
+        | Check Selected Slot
+        |--------------------------------------------------------------------------
         */
-        bookingDetails +=
-            createSummaryRow(
-                'Number of Days',
-                '1'
-            );
 
+        function isSelectedSlotAvailable(items,hallToConfirm) {
+            var available = false;
 
-        $('#bookingDetails')
-            .html(
-                bookingDetails
-            );
+            $.each(items,function (index, item) {
+                var responseHallId = parseInt(item.hall_id || item.id || 0);
 
+                if (responseHallId !== parseInt(hallToConfirm.hall_id)) {
+                    return;
+                }
 
-        var priceDetails = '';
+                var itemSlots = [];
+                createSlots(itemSlots,item);
+                    $.each(itemSlots,function (slotIndex,slot) {
+                        if (parseInt(slot.slot_id) === parseInt(hallToConfirm.slot_id) && String(slot.slot_type) === String(hallToConfirm.slot_type)) {
 
-
-        priceDetails +=
-            createSummaryRow(
-                'Hall Price',
-                '₹' +
-                parseFloat(
-                    selectedHall.total_price || 0
-                ).toFixed(2)
-            );
-
-
-        priceDetails +=
-            createSummaryRow(
-                'GST',
-                '₹0.00'
-            );
-
-
-        priceDetails +=
-            createSummaryRow(
-                'Total Price',
-                '₹' +
-                parseFloat(
-                    selectedHall.total_price || 0
-                ).toFixed(2)
-            );
-
-
-        $('#priceDetails')
-            .html(
-                priceDetails
-            );
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Summary Row
-    |--------------------------------------------------------------------------
-    */
-
-    function createSummaryRow(
-        label,
-        value
-    ) {
-
-        return (
-
-            '<div class="summary-row">' +
-
-                '<span class="summary-label">' +
-
-                    escapeHtml(
-                        label
-                    ) +
-
-                '</span>' +
-
-                '<span class="summary-value">' +
-
-                    escapeHtml(
-                        value
-                    ) +
-
-                '</span>' +
-
-            '</div>'
-        );
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Back To Hall
-    |--------------------------------------------------------------------------
-    */
-
-    $('#backToHall').on(
-        'click',
-        function () {
-
-            selectedHall = null;
-
-            clearSelectedHallInputs();
-
-
-            $('#bookingDetails')
-                .html('');
-
-
-            $('#priceDetails')
-                .html('');
-
-
-            $('.user-section')
-                .hide(500);
-
-
-            $('.hall-section')
-                .show(500);
-
-
-            $('html, body')
-                .animate(
-                    {
-                        scrollTop:
-                            $('.hall-section')
-                                .offset()
-                                .top - 80
-                    },
-                    500
-                );
-        }
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Country -> State
-    |--------------------------------------------------------------------------
-    */
-
-    $('#customer_country').on(
-        'change',
-        function () {
-
-            var countryValue =
-                $(this).val();
-
-
-            $('#customer_state')
-                .html(
-                    '<option value="">' +
-                    'Select State' +
-                    '</option>'
-                );
-
-
-            $('#customer_city')
-                .html(
-                    '<option value="">' +
-                    'Select City' +
-                    '</option>'
-                );
-
-
-            if (!countryValue) {
-                return;
-            }
-
-
-            var countryParts =
-                countryValue.split('~');
-
-
-            var countryId =
-                countryParts[1] || '';
-
-
-            if (!countryId) {
-
-                alert(
-                    'Invalid country selection.'
-                );
-
-                return;
-            }
-
-
-            $('#customer_state')
-                .prop(
-                    'disabled',
-                    true
-                );
-
-
-            $.ajax({
-
-                type: 'POST',
-
-                url:
-                    "{{ route('create-offline-hall-order') }}",
-
-                data: {
-
-                    _token:
-                        "{{ csrf_token() }}",
-
-                    request_type:
-                        'get_states_country',
-
-                    countryId:
-                        countryId
-                },
-
-                success: function (response) {
-
-                    $('#customer_state')
-                        .prop(
-                            'disabled',
-                            false
-                        );
-
-
-                    response =
-                        parseAjaxResponse(
-                            response
-                        );
-
-
-                    var optionsHtml =
-                        getOptionsHtml(
-                            response
-                        );
-
-
-                    if (!optionsHtml) {
-
-                        alert(
-                            response.message ||
-                            'No states found.'
-                        );
-
-                        return;
-                    }
-
-
-                    $('#customer_state')
-                        .html(
-                            optionsHtml
-                        );
-                },
-
-                error: function (xhr) {
-
-                    $('#customer_state')
-                        .prop(
-                            'disabled',
-                            false
-                        );
-
-
-                    alert(
-                        getAjaxError(
-                            xhr,
-                            'Unable to load states.'
-                        )
+                                available = true;
+                            }
+                        }
                     );
                 }
-            });
+            );
+
+            return available;
         }
-    );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | State -> City
-    |--------------------------------------------------------------------------
-    */
+        /*
+        |--------------------------------------------------------------------------
+        | Store Selected Hall
+        |--------------------------------------------------------------------------
+        */
 
-    $('#customer_state').on(
-        'change',
-        function () {
+        function storeSelectedHallDetails() {
 
-            var stateValue =
-                $(this).val();
+            if (!selectedHall) {
+                clearSelectedHallInputs();
+                return;
+            }
+
+            var hallArray = [selectedHall];
+
+            $('#selected_hall_details').val(JSON.stringify( hallArray));
+            $('#hall_details').val(JSON.stringify( hallArray));
+            $('#hall_id').val(selectedHall.hall_id);
+            $('#slot_id').val(selectedHall.slot_id);
+            $('#slot_type').val(selectedHall.slot_type);
+            $('#booking_type').val(selectedHall.booking_type);
+            $('#available_half').val(selectedHall.available_half);
+
+            $('#total_halls').val(1);
+
+            updatePriceInputs(selectedHall.total_price);
+        }
 
 
-            $('#customer_city')
-                .html(
-                    '<option value="">' +
-                    'Select City' +
-                    '</option>'
-                );
+        /*
+        |--------------------------------------------------------------------------
+        | Clear Selected Hall
+        |--------------------------------------------------------------------------
+        */
+
+        function clearSelectedHallInputs() {
+            $('#selected_hall_details').val('');
+            $('#hall_details').val('');
+            $('#hall_id').val('');
+            $('#slot_id').val('');
+            $('#booking_type').val('');
+            $('#available_half').val('');
+            $('#total_halls').val(0);
+
+            updatePriceInputs(0);
+        }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Booking Summary
+        |--------------------------------------------------------------------------
+        */
+
+        function renderBookingSummary() {
+
+            if (!selectedHall) {
+                return;
+            }
+
+            var propertyName = $('#property_id option:selected').text().trim().replace(/\s+/g,' ');
+            var bookingDetails = '';
+
+            bookingDetails += createSummaryRow('Property',propertyName);
+            bookingDetails += createSummaryRow('Booking Date', $('#check_date').val());
+            bookingDetails += createSummaryRow('Hall', selectedHall.hall_name);
+            bookingDetails += createSummaryRow('Hall Type',selectedHall.hall_type);
+            bookingDetails += createSummaryRow('Slot', selectedHall.slot_label);
+            bookingDetails += createSummaryRow('Number of Days','1');
+
+            $('#bookingDetails').html(bookingDetails);
+
+            var priceDetails = '';
+
+            priceDetails += createSummaryRow('Hall Price', '₹' + parseFloat(selectedHall.total_price || 0).toFixed(2));
+
+            priceDetails += createSummaryRow('GST','₹0.00');
+
+            priceDetails += createSummaryRow('Total Price', '₹' + parseFloat(selectedHall.total_price || 0 ).toFixed(2));
+
+            $('#priceDetails') .html( priceDetails);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Summary Row
+        |--------------------------------------------------------------------------
+        */
+
+        function createSummaryRow(label,value) {
+            return (
+                '<div class="summary-row">' +
+                    '<span class="summary-label">' +
+                        escapeHtml(
+                            label
+                        ) +
+                    '</span>' +
+                    '<span class="summary-value">' +
+                        escapeHtml(
+                            value
+                        ) +
+                    '</span>' +
+                '</div>'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Back To Hall
+        |--------------------------------------------------------------------------
+        */
+
+        $('#backToHall').on('click',function () {
+            selectedHall = null;
+            clearSelectedHallInputs();
+
+            $('#bookingDetails').html('');
+            $('#priceDetails').html('');
+            $('.user-section').hide(500);
+            $('.hall-section').show(500);
+            $('html, body').animate({scrollTop: $('.hall-section') .offset() .top - 80},500);
+        });
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Country -> State
+        |--------------------------------------------------------------------------
+        */
+
+        $('#customer_country').on('change',function () {
+                var countryValue = $(this).val();
+                $('#customer_state').html( '<option value="">' + 'Select State' + '</option>');
+                $('#customer_city').html( '<option value="">' + 'Select City' + '</option>');
+
+                if (!countryValue) {
+                    return;
+                }
+
+                var countryParts = countryValue.split('~');
+                var countryId = countryParts[1] || '';
+
+                if (!countryId) {
+                    alert( 'Invalid country selection.');
+                    return;
+                }
+
+                $('#customer_state').prop('disabled',true);
+
+                $.ajax({
+                    type: 'POST',
+                    url: "{{ route('create-offline-hall-order') }}",
+
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        request_type: 'get_states_country',
+                        countryId: countryId
+                    },
+
+                    success: function (response) {
+                        $('#customer_state').prop('disabled', false);
+                        response = parseAjaxResponse(response);
+
+                        var optionsHtml = getOptionsHtml(response);
+                        if (!optionsHtml) {
+                            alert(response.message || 'No states found.');
+                            return;
+                        }
+
+                        $('#customer_state').html(optionsHtml);
+                    },
+
+                    error: function (xhr) {
+                        $('#customer_state')
+                            .prop('disabled', false);
+
+                        alert(getAjaxError( xhr, 'Unable to load states.'));
+                    }
+                });
+            }
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | State -> City
+        |--------------------------------------------------------------------------
+        */
+
+        $('#customer_state').on('change', function () {
+            var stateValue = $(this).val();
+        
+            $('#customer_city').html('<option value="">' +'Select City' +'</option>');
             if (!stateValue) {
                 return;
             }
 
-
-            var stateParts =
-                stateValue.split('~');
-
-
-            var stateId =
-                stateParts[1] || '';
-
+            var stateParts = stateValue.split('~');
+            var stateId = stateParts[1] || '';
 
             if (!stateId) {
-
-                alert(
-                    'Invalid state selection.'
-                );
-
+                alert('Invalid state selection.');
                 return;
             }
 
+            $('#customer_city').prop('disabled',true);
+                $.ajax({
+                    type: 'POST',
+                    url: "{{ route('create-offline-hall-order') }}",
+                    data: {
 
-            $('#customer_city')
-                .prop(
-                    'disabled',
-                    true
-                );
+                        _token: "{{ csrf_token() }}",
+                        request_type: 'get_city_state',
+                        stateId: stateId
 
+                    },
 
-            $.ajax({
+                    success: function (response) {
+                        $('#customer_city').prop('disabled', false);
+                        response = parseAjaxResponse(response);
+                        var optionsHtml = getOptionsHtml(response);
 
-                type: 'POST',
+                        if (!optionsHtml) {
+                            alert(response.message || 'No cities found.');
+                            return;
+                        }
 
-                url:
-                    "{{ route('create-offline-hall-order') }}",
+                        $('#customer_city').html(optionsHtml);
+                    },
 
-                data: {
-
-                    _token:
-                        "{{ csrf_token() }}",
-
-                    request_type:
-                        'get_city_state',
-
-                    stateId:
-                        stateId
-                },
-
-                success: function (response) {
-
-                    $('#customer_city')
-                        .prop(
-                            'disabled',
-                            false
-                        );
-
-
-                    response =
-                        parseAjaxResponse(
-                            response
-                        );
-
-
-                    var optionsHtml =
-                        getOptionsHtml(
-                            response
-                        );
-
-
-                    if (!optionsHtml) {
-
-                        alert(
-                            response.message ||
-                            'No cities found.'
-                        );
-
-                        return;
+                    error: function (xhr) {
+                        $('#customer_city').prop('disabled',false);
+                        alert(getAjaxError(xhr,'Unable to load cities.'));
                     }
+                });
+            }
+        );
 
 
-                    $('#customer_city')
-                        .html(
-                            optionsHtml
-                        );
-                },
+        /*
+        |--------------------------------------------------------------------------
+        | Payment Required Fields
+        |--------------------------------------------------------------------------
+        */
 
-                error: function (xhr) {
+        $('#payment_gateway').on('change',function () {
+                updatePaymentRequiredFields();
+            }
+        );
 
-                    $('#customer_city')
-                        .prop(
-                            'disabled',
-                            false
-                        );
+        updatePaymentRequiredFields();
 
+        function updatePaymentRequiredFields() {
+            var paymentMethod = $('#payment_gateway').val();
 
-                    alert(
-                        getAjaxError(
-                            xhr,
-                            'Unable to load cities.'
-                        )
-                    );
-                }
-            });
+            if (paymentMethod === 'hdfc') {
+                $('.payment-required-field')
+                    .attr('required',true);
+            } else {
+                $('.payment-required-field')
+                    .removeAttr('required');
+            }
         }
-    );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Payment Required Fields
-    |--------------------------------------------------------------------------
-    */
+        /*
+        |--------------------------------------------------------------------------
+        | Submit Form
+        |--------------------------------------------------------------------------
+        */
 
-    $('#payment_gateway').on(
-        'change',
-        function () {
-
-            updatePaymentRequiredFields();
-        }
-    );
-
-
-    updatePaymentRequiredFields();
-
-
-    function updatePaymentRequiredFields() {
-
-        var paymentMethod =
-            $('#payment_gateway').val();
-
-
-        if (
-            paymentMethod === 'hdfc'
-        ) {
-
-            $('.payment-required-field')
-                .attr(
-                    'required',
-                    true
-                );
-
-        } else {
-
-            $('.payment-required-field')
-                .removeAttr(
-                    'required'
-                );
-        }
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Submit Form
-    |--------------------------------------------------------------------------
-    */
-
-    $('#offlineHallOrderForm').on(
-        'submit',
-        function (event) {
-
+        $('#offlineHallOrderForm').on('submit',function (event) {
             if (!selectedHall) {
-
                 event.preventDefault();
+                alert('Please select and confirm a Hall.');
+                return false;
+            }
 
-                alert(
-                    'Please select and confirm a Hall.'
-                );
+            if (!$('.user-section').is(':visible')) {
+                event.preventDefault();
+                alert('Please confirm the selected Hall.');
+                return false;
+            }
+
+            var phone = $('#customer_phone') .val() .trim();
+
+            if (!/^[0-9]{10}$/.test(phone)) {
+                event.preventDefault();
+                alert('Please enter a valid 10 digit phone number.');
 
                 return false;
             }
 
-
-            if (
-                !$('.user-section')
-                    .is(':visible')
-            ) {
-
-                event.preventDefault();
-
-                alert(
-                    'Please confirm the selected Hall.'
-                );
-
-                return false;
-            }
-
-
-            var phone =
-                $('#customer_phone')
-                    .val()
-                    .trim();
-
-
-            if (
-                !/^[0-9]{10}$/.test(
-                    phone
-                )
-            ) {
-
-                event.preventDefault();
-
-                alert(
-                    'Please enter a valid 10 digit phone number.'
-                );
-
-                return false;
-            }
-
-
-            /*
-            | Make sure date fields are synchronized.
-            */
             updateHiddenDates();
-
-
             storeSelectedHallDetails();
 
+            $('#request_type').val('create_hall_order');
 
-            $('#request_type').val(
-                'create_hall_order'
-            );
-
-
-            $('#bookNow')
-                .prop(
-                    'disabled',
-                    true
-                )
+            $('#bookNow').prop('disabled',true)
                 .html(
                     '<i class="fa fa-spinner fa-spin"></i> ' +
                     'Booking...'
                 );
-        }
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Price Inputs
-    |--------------------------------------------------------------------------
-    */
-
-    function updatePriceInputs(
-        totalPrice
-    ) {
-
-        totalPrice =
-            parseFloat(
-                totalPrice || 0
-            );
-
-
-        var taxAmount = 0;
-
-
-        var finalPrice =
-            totalPrice +
-            taxAmount;
-
-
-        $('#hall_price')
-            .val(
-                totalPrice.toFixed(2)
-            );
-
-
-        $('#total_service_price')
-            .val(
-                totalPrice.toFixed(2)
-            );
-
-
-        $('#sub_total_price')
-            .val(
-                totalPrice.toFixed(2)
-            );
-
-
-
-        $('#tax_amount')
-            .val(
-                taxAmount.toFixed(2)
-            );
-
-
-        $('#tax_percentage')
-            .val(0);
-
-
-        $('#total_order_price')
-            .val(
-                finalPrice.toFixed(2)
-            );
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Reset Hall Selection
-    |--------------------------------------------------------------------------
-    */
-
-    function resetHallSelection() {
-
-        selectedHall = null;
-
-
-        clearSelectedHallInputs();
-
-
-        $('#bookingDetails')
-            .html('');
-
-
-        $('#priceDetails')
-            .html('');
-
-
-        $('.user-section')
-            .hide();
-
-
-        $('.hall-section')
-            .show();
-
-
-        $('.confirm-hall-btn')
-            .prop(
-                'disabled',
-                false
-            )
-            .text(
-                'Confirm Hall'
-            );
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Helper - Book From Text
-    |--------------------------------------------------------------------------
-    */
-
-    function getBookFromText() {
-
-        var bookFromText =
-            $('#book_from option:selected')
-                .text()
-                .trim()
-                .replace(
-                    /\s+/g,
-                    ' '
-                );
-
-
-        if (!bookFromText) {
-
-            bookFromText =
-                $('#book_from').val() ===
-                    'blocked'
-
-                    ? 'Blocked Inventory'
-
-                    : 'Live Inventory';
-        }
-
-
-        return bookFromText;
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Helper - Availability Items
-    |--------------------------------------------------------------------------
-    */
-
-    function getAvailabilityItems(
-        response
-    ) {
-
-        if (
-            response.data &&
-            Array.isArray(
-                response.data
-            )
-        ) {
-
-            return response.data;
-        }
-
-
-        if (
-            response.content &&
-            Array.isArray(
-                response.content
-            )
-        ) {
-
-            return response.content;
-        }
-
-
-        if (
-            response.content &&
-            response.content.data &&
-            Array.isArray(
-                response.content.data
-            )
-        ) {
-
-            return response.content.data;
-        }
-
-
-        return [];
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Helper - Success Response
-    |--------------------------------------------------------------------------
-    */
-
-    function isSuccessResponse(
-        response
-    ) {
-
-        return (
-            response.status == 1 ||
-            response.status === true
+            }
         );
-    }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Helper - Options HTML
-    |--------------------------------------------------------------------------
-    */
+        /*
+        |--------------------------------------------------------------------------
+        | Price Inputs
+        |--------------------------------------------------------------------------
+        */
 
-    function getOptionsHtml(
-        response
-    ) {
+        function updatePriceInputs(totalPrice) {
+            totalPrice = parseFloat( totalPrice || 0);
 
-        if (
-            typeof response.data ===
-            'string'
-        ) {
+            var taxAmount = 0;
+            var finalPrice = totalPrice +taxAmount;
 
-            return response.data;
+            $('#hall_price') .val (totalPrice.toFixed(2));
+            $('#total_service_price').val(totalPrice.toFixed(2));
+            $('#sub_total_price').val(totalPrice.toFixed(2));
+            $('#tax_amount').val(taxAmount.toFixed(2));
+            $('#tax_percentage').val(0);
+            $('#total_order_price').val(finalPrice.toFixed(2));
         }
 
 
-        if (
-            typeof response.content ===
-            'string'
-        ) {
+        /*
+        |--------------------------------------------------------------------------
+        | Reset Hall Selection
+        |--------------------------------------------------------------------------
+        */
 
-            return response.content;
+        function resetHallSelection() {
+            selectedHall = null;
+            clearSelectedHallInputs();
+
+            $('#bookingDetails').html('');
+            $('#priceDetails').html('');
+            $('.user-section').hide();
+            $('.hall-section').show();
+            $('.confirm-hall-btn').prop('disabled',false).text('Confirm Hall');
         }
 
 
-        if (
-            typeof response.html ===
-            'string'
-        ) {
+        /*
+        |--------------------------------------------------------------------------
+        | Helper - Book From Text
+        |--------------------------------------------------------------------------
+        */
 
-            return response.html;
-        }
+        function getBookFromText() {
 
+            var bookFromText =$('#book_from option:selected').text().trim().replace(/\s+/g,' ');
 
-        return '';
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Helper - Availability Message
-    |--------------------------------------------------------------------------
-    */
-
-    function showAvailabilityMessage(
-        message,
-        type
-    ) {
-
-        $('#availabilityMessage')
-
-            .removeClass(
-                'alert-success ' +
-                'alert-warning ' +
-                'alert-danger'
-            )
-
-            .addClass(
-                'alert alert-' +
-                type
-            )
-
-            .html(message)
-
-            .show();
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Helper - Parse AJAX Response
-    |--------------------------------------------------------------------------
-    */
-
-    function parseAjaxResponse(
-        response
-    ) {
-
-        if (
-            typeof response ===
-            'string'
-        ) {
-
-            try {
-
-                return JSON.parse(
-                    response
-                );
-
-            } catch (error) {
-
-                return {
-
-                    status: 0,
-
-                    message:
-                        'Invalid server response.'
-                };
+            if (!bookFromText) {
+                bookFromText = $('#book_from').val() === 'blocked' ? 'Blocked Inventory' : 'Live Inventory';
             }
+
+            return bookFromText;
         }
 
 
-        return response;
-    }
+        /*
+        |--------------------------------------------------------------------------
+        | Helper - Availability Items
+        |--------------------------------------------------------------------------
+        */
 
+        function getAvailabilityItems(response) {
+            if (response.data && Array.isArray(response.data)) {
+                return response.data;
+            }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Helper - AJAX Error
-    |--------------------------------------------------------------------------
-    */
+            if (response.content && Array.isArray(response.content)) {
+                return response.content;
+            }
 
-    function getAjaxError(
-        xhr,
-        defaultMessage
-    ) {
+            if (response.content && response.content.data && Array.isArray(response.content.data)) {
+                return response.content.data;
+            }
 
-        if (
-            xhr.responseJSON &&
-            xhr.responseJSON.message
-        ) {
-
-            return xhr.responseJSON
-                .message;
+            return [];
         }
 
 
-        if (xhr.responseText) {
+        /*
+        |--------------------------------------------------------------------------
+        | Helper - Success Response
+        |--------------------------------------------------------------------------
+        */
+        function isSuccessResponse(response) {
 
-            try {
-
-                var response =
-                    JSON.parse(
-                        xhr.responseText
-                    );
+            return (response.status == 1 || response.status === true);
+        }
 
 
-                if (
-                    response.message
-                ) {
+        /*
+        |--------------------------------------------------------------------------
+        | Helper - Options HTML
+        |--------------------------------------------------------------------------
+        */
 
-                    return response.message;
+        function getOptionsHtml(response) {
+            if (typeof response.data ==='string') {
+                return response.data;
+            }
+
+
+            if (typeof response.content === 'string') {
+
+                return response.content;
+            }
+
+            if (typeof response.html === 'string') {
+                return response.html;
+            }
+
+            return '';
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Helper - Availability Message
+        |--------------------------------------------------------------------------
+        */
+
+        function showAvailabilityMessage(message,type) {
+            $('#availabilityMessage')
+                .removeClass(
+                    'alert-success ' +
+                    'alert-warning ' +
+                    'alert-danger'
+                )
+                .addClass('alert alert-' + type)
+                .html(message)
+                .show();
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Helper - Parse AJAX Response
+        |--------------------------------------------------------------------------
+        */
+
+        function parseAjaxResponse(response) {
+            if (typeof response === 'string') {
+                try {
+
+                    return JSON.parse(response);
+                } catch (error) {
+                    return {
+                        status: 0,
+                        message: 'Invalid server response.'
+                    };
                 }
-
-            } catch (error) {
-
-                console.log(
-                    xhr.responseText
-                );
             }
+            return response;
         }
 
 
-        return defaultMessage;
-    }
+        /*
+        |--------------------------------------------------------------------------
+        | Helper - AJAX Error
+        |--------------------------------------------------------------------------
+        */
 
+        function getAjaxError(xhr,defaultMessage) {
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                return xhr.responseJSON.message;
+            }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Helper - Normalise Token
-    |--------------------------------------------------------------------------
-    */
+            if (xhr.responseText) {
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.message) {
+                        return response.message;
+                    }
+                } catch (error) {
+                    console.log(xhr.responseText);
+                }
+            }
+            return defaultMessage;
+        }
 
-    function normaliseToken(
-        value
-    ) {
+        /*
+        |--------------------------------------------------------------------------
+        | Helper - Normalise Token
+        |--------------------------------------------------------------------------
+        */
+        function normaliseToken(value) {
+            return String(value || '')
+                .trim()
+                .toUpperCase()
+                .replace(/[\s-]+/g,'_');
+        }
 
-        return String(
-            value || ''
-        )
-            .trim()
-            .toUpperCase()
-            .replace(
-                /[\s-]+/g,
-                '_'
-            );
-    }
+        function escapeHtml(value) {
+            return $('<div>')
+                .text(value === null ? '' : value)
+                .html();
+        }
 
+        function escapeAttribute(value) {
+            return String(value === null ? '' : value)
+                .replace(/&/g,'&amp;')
+                .replace(/"/g,'&quot;')
+                .replace(/'/g,'&#039;')
+                .replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;');
+        }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Helper - Escape HTML
-    |--------------------------------------------------------------------------
-    */
-
-    function escapeHtml(
-        value
-    ) {
-
-        return $('<div>')
-            .text(
-                value === null
-                    ? ''
-                    : value
-            )
-            .html();
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Helper - Escape Attribute
-    |--------------------------------------------------------------------------
-    */
-
-    function escapeAttribute(
-        value
-    ) {
-
-        return String(
-            value === null
-                ? ''
-                : value
-        )
-
-            .replace(
-                /&/g,
-                '&amp;'
-            )
-
-            .replace(
-                /"/g,
-                '&quot;'
-            )
-
-            .replace(
-                /'/g,
-                '&#039;'
-            )
-
-            .replace(
-                /</g,
-                '&lt;'
-            )
-
-            .replace(
-                />/g,
-                '&gt;'
-            );
-    }
-
-
-});
+    });
 </script>
 @endsection

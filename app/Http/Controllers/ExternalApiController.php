@@ -9,13 +9,31 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-class ExternalApiController extends Controller{
+class ExternalApiController extends Controller
+{
+
+    private $clientId = 'BookOdisha@2026';
+    private $clientSecret = 'Vb4ZS1YdBMb^mLHfVp+F';
+
+    public function __construct(Request $request)
+    {
+        $clientIdKey = $request->header('Client-ID');
+        $clientSecretKey = $request->header('Client-Secret');
+
+        if ($this->clientId !== $clientIdKey || $this->clientSecret !== $clientSecretKey) {
+            abort(response()->json([
+                'status' => false,
+                'message' => 'Unauthorized'
+            ], 401));
+        }
+    }
 
     public function ticketsBookingApi(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'status'         => 'nullable|string|in:completed,pending',
+            'status'         => 'nullable|string|in:completed,cancelled',
             'data_type'      => 'nullable|string|in:all,pagination',
+            'book_from'      => 'nullable|string|in:blocked',
             'booking_date'   => 'nullable|string',
             'service_name'   => 'nullable|string|max:255',
             'order_id'       => 'nullable|string|max:100',
@@ -23,6 +41,7 @@ class ExternalApiController extends Controller{
             'transaction_id' => 'nullable|string|max:100',
             'page'           => 'nullable|integer|min:1',
             'per_page'       => 'nullable|integer|min:1|max:100',
+            'fetch_from'     => 'nullable|date_format:Y-m-d H:i:s',
         ]);
 
         if ($validator->fails()) {
@@ -33,21 +52,36 @@ class ExternalApiController extends Controller{
         }
 
         $perPage = 20;
-        if($request->filled('per_page')){
+        if ($request->filled('per_page')) {
             $perPage = $request->input('per_page', 20);
         }
 
         $query = DB::table('order_masters as o')
-            ->join('ticket_bookings as tb', 'tb.booking_id', '=', 'o.order_id')
-            ->where('o.service_type', 'ticketing');
+            ->leftjoin('ticket_bookings as tb', 'tb.booking_id', '=', 'o.order_id')
+            ->where('o.service_type', 'ticketing')
+            ->where('o.payment_status', 'success');
 
         /*
         * Status
         */
-        $query->where(
-            'o.status',
-            $request->input('status', 'completed')
-        );
+        // $query->whereIn(
+        //     'o.status',
+        //     [$request->input('status', 'completed'), 'cancelled']
+        // );m
+
+        if ($request->filled('status')) {
+            $query->where('o.status', $request->input('status', 'completed'));
+        } else {
+            $query->whereIn('o.status', ['completed', 'cancelled']);
+        }
+
+        if($request->filled('fetch_from')) {
+            $query->where('o.created_at', '>=', $request->fetch_from);
+        }
+
+        if ($request->filled('book_from')) {
+            $query->where('book_from', $request->input('book_from', 'blocked'));
+        }
 
         /*
         * Booking date
@@ -68,10 +102,10 @@ class ExternalApiController extends Controller{
             $startDate = date('Y-m-d', strtotime(trim($dates[0])));
             $endDate   = date('Y-m-d', strtotime(trim($dates[1])));
 
-            if($startDate > $endDate){
+            if ($startDate > $endDate) {
                 return response()->json([
-                    'status'=>0,
-                    'message'=>'Start date cannot be greater than end date'
+                    'status' => 0,
+                    'message' => 'Start date cannot be greater than end date'
                 ], 422);
             }
 
@@ -125,8 +159,10 @@ class ExternalApiController extends Controller{
         * Select only required columns
         */
         $query->select([
+            'o.service_name_id as ticket_id',
             'o.order_id',
             'o.order_type',
+            'o.book_from',
             'o.invoice_id',
             'o.vendor_name',
             'o.transaction_id',
@@ -136,36 +172,48 @@ class ExternalApiController extends Controller{
             'o.status',
             'o.payment_status',
             'o.created_at as booking_date',
-            'tb.total_seats',
-            'tb.total_adults',
-            'tb.total_child',
-            'tb.start_date',
-            'tb.start_time',
-            'tb.end_time',
-            'tb.adult_price',
-            'tb.child_price',
+            'o.total_guests as total_seats',
+            'o.total_adults',
+            'o.total_child',
+            'o.start_date',
+            'o.start_time',
+            'o.end_time',
+            'o.adult_price',
+            'o.child_price',
             'tb.extra_services',
-            'tb.service_charge',
-            'tb.totalPrice',
+            'o.rental_breakdown as price_breakup',
+            'o.service_charge',
+            'o.total_order_price as totalPrice',
             'tb.user_type',
+            'o.updated_at',
+             DB::raw('
+                CASE
+                    WHEN TIMESTAMPDIFF(MINUTE,o.created_at, o.updated_at) = 0 THEN "Not modified"
+                    WHEN TIMESTAMPDIFF(MINUTE,o.created_at, o.updated_at) < 60 THEN CONCAT(TIMESTAMPDIFF(MINUTE,o.created_at, o.updated_at), " minutes ago")
+                    WHEN TIMESTAMPDIFF(HOUR,o.created_at, o.updated_at) < 24 THEN CONCAT(TIMESTAMPDIFF(HOUR,o.created_at, o.updated_at), " hours ago")
+                    WHEN TIMESTAMPDIFF(DAY,o.created_at, o.updated_at) < 30 THEN CONCAT(TIMESTAMPDIFF(DAY,o.created_at, o.updated_at), " days ago")
+                    WHEN TIMESTAMPDIFF(MONTH,o.created_at, o.updated_at) < 12 THEN CONCAT(TIMESTAMPDIFF(MONTH,o.created_at, o.updated_at), " months ago")
+                    ELSE CONCAT(TIMESTAMPDIFF(YEAR,o.created_at, o.updated_at), " years ago")
+                END as modified_since
+            ')
         ]);
 
         $data_type = 'all';
-        if($request->filled('data_type')){
-            $data_type = $request->input('data_type','pagination');
+        if ($request->filled('data_type')) {
+            $data_type = $request->input('data_type', 'pagination');
         }
-        if($data_type == 'all'){
+        if ($data_type == 'all') {
             $ticketing = $query
-            ->orderBy('o.id', 'desc')
-            ->get();
+                ->orderBy('o.id', 'desc')
+                ->get();
             return response()->json([
-                'status'=>1,
-                'message'=>'Success',
-                'data'=>$ticketing,
-                'total'=>$ticketing->count(),
-                'data_type'=>$data_type
+                'status' => 1,
+                'message' => 'Success',
+                'data' => $ticketing,
+                'total' => $ticketing->count(),
+                'data_type' => $data_type
             ]);
-        }else{
+        } else {
             /*
             * Pagination
             */
@@ -176,7 +224,7 @@ class ExternalApiController extends Controller{
             return response()->json([
                 'status'  => 1,
                 'message' => 'Success',
-                'data_type'=>$data_type,
+                'data_type' => $data_type,
                 'data'    => $ticketing->items(),
                 'pagination' => [
                     'current_page' => $ticketing->currentPage(),
@@ -190,10 +238,12 @@ class ExternalApiController extends Controller{
         }
     }
 
-    public function tourBookingApi(Request $request){
+    public function tourBookingApi(Request $request)
+    {
         $validator = Validator::make($request->all(), [
-            'status'         => 'nullable|string|in:completed,pending',
+            'status'         => 'nullable|string|in:completed,cancelled',
             'data_type'      => 'nullable|string|in:all,pagination',
+            'book_from'      => 'nullable|string|in:blocked',
             'booking_date'   => 'nullable|string',
             'service_name'   => 'nullable|string|max:255',
             'order_id'       => 'nullable|string|max:100',
@@ -201,6 +251,8 @@ class ExternalApiController extends Controller{
             'transaction_id' => 'nullable|string|max:100',
             'page'           => 'nullable|integer|min:1',
             'per_page'       => 'nullable|integer|min:1|max:100',
+            'fetch_from'     => 'nullable|date_format:Y-m-d H:i:s',
+
         ]);
 
         if ($validator->fails()) {
@@ -211,21 +263,32 @@ class ExternalApiController extends Controller{
         }
 
         $perPage = 20;
-        if($request->filled('per_page')){
+        if ($request->filled('per_page')) {
             $perPage = $request->input('per_page', 20);
         }
 
         $query = DB::table('order_masters as o')
-            ->join('tour_bookings as tb', 'tb.booking_id', '=', 'o.order_id')
-            ->where('o.service_type', 'tour');
+            ->leftjoin('tour_bookings as tb', 'tb.booking_id', '=', 'o.order_id')
+            ->where('o.service_type', 'tour')
+            ->where('o.payment_status', 'success');
 
         /*
         * Status
         */
-        $query->where(
-            'o.status',
-            $request->input('status', 'completed')
-        );
+        // $query->whereIn(
+        //     'o.status',
+        //     [$request->input('status', 'completed'), 'cancelled']
+        // );
+
+        if ($request->filled('status')) {
+            $query->where('o.status', $request->input('status', 'completed'));
+        } else {
+            $query->whereIn('o.status', ['completed', 'cancelled']);
+        }
+
+        if ($request->filled('book_from')) {
+            $query->where('book_from', $request->input('book_from', 'blocked'));
+        }
 
         /*
         * Booking date
@@ -246,10 +309,10 @@ class ExternalApiController extends Controller{
             $startDate = date('Y-m-d', strtotime(trim($dates[0])));
             $endDate   = date('Y-m-d', strtotime(trim($dates[1])));
 
-            if($startDate > $endDate){
+            if ($startDate > $endDate) {
                 return response()->json([
-                    'status'=>0,
-                    'message'=>'Start date cannot be greater than end date'
+                    'status' => 0,
+                    'message' => 'Start date cannot be greater than end date'
                 ], 422);
             }
 
@@ -257,6 +320,12 @@ class ExternalApiController extends Controller{
                 $startDate . ' 00:00:00',
                 $endDate . ' 23:59:59',
             ]);
+        }
+         /*
+        * Fetch Form Record
+        */
+        if($request->filled('fetch_from')) {
+            $query->where('o.created_at', '>=', $request->fetch_from);
         }
 
         /*
@@ -303,8 +372,10 @@ class ExternalApiController extends Controller{
         * Select only required columns
         */
         $query->select([
+            'o.service_name_id as tour_id',
             'o.order_id',
             'o.order_type',
+            'o.book_from',
             'o.invoice_id',
             'o.vendor_name',
             'o.transaction_id',
@@ -314,35 +385,46 @@ class ExternalApiController extends Controller{
             'o.status',
             'o.payment_status',
             'o.created_at as booking_date',
-            'tb.total_seats',
-            'tb.total_adults',
-            'tb.total_child',
+            'o.total_guests as total_seats',
+            'o.total_adults',
+            'o.total_child',
             'o.start_date',
             'o.end_date',
-            'tb.adult_price',
-            'tb.child_price',
-            'tb.price_breakup',
-            'tb.service_charge',
-            'tb.totalPrice',
+            'o.adult_price',
+            'o.child_price',
+            'o.rental_breakdown as price_breakup',
+            'o.service_charge',
+            'o.total_order_price as totalPrice',
             'tb.user_type',
+            'o.updated_at',
+            DB::raw('
+                CASE
+                    WHEN TIMESTAMPDIFF(MINUTE,o.created_at, o.updated_at) = 0 THEN "Not modified"
+                    WHEN TIMESTAMPDIFF(MINUTE,o.created_at, o.updated_at) < 60 THEN CONCAT(TIMESTAMPDIFF(MINUTE,o.created_at, o.updated_at), " minutes ago")
+                    WHEN TIMESTAMPDIFF(HOUR,o.created_at, o.updated_at) < 24 THEN CONCAT(TIMESTAMPDIFF(HOUR,o.created_at, o.updated_at), " hours ago")
+                    WHEN TIMESTAMPDIFF(DAY,o.created_at, o.updated_at) < 30 THEN CONCAT(TIMESTAMPDIFF(DAY,o.created_at, o.updated_at), " days ago")
+                    WHEN TIMESTAMPDIFF(MONTH,o.created_at, o.updated_at) < 12 THEN CONCAT(TIMESTAMPDIFF(MONTH,o.created_at, o.updated_at), " months ago")
+                    ELSE CONCAT(TIMESTAMPDIFF(YEAR,o.created_at, o.updated_at), " years ago")
+                END as modified_since
+            ')
         ]);
 
         $data_type = 'all';
-        if($request->filled('data_type')){
-            $data_type = $request->input('data_type','pagination');
+        if ($request->filled('data_type')) {
+            $data_type = $request->input('data_type', 'pagination');
         }
-        if($data_type == 'all'){
+        if ($data_type == 'all') {
             $ticketing = $query
-            ->orderBy('o.id', 'desc')
-            ->get();
+                ->orderBy('o.id', 'desc')
+                ->get();
             return response()->json([
-                'status'=>1,
-                'message'=>'Success',
-                'data'=>$ticketing,
-                'total'=>$ticketing->count(),
-                'data_type'=>$data_type
+                'status' => 1,
+                'message' => 'Success',
+                'data' => $ticketing,
+                'total' => $ticketing->count(),
+                'data_type' => $data_type
             ]);
-        }else{
+        } else {
             /*
             * Pagination
             */
@@ -353,7 +435,7 @@ class ExternalApiController extends Controller{
             return response()->json([
                 'status'  => 1,
                 'message' => 'Success',
-                'data_type'=>$data_type,
+                'data_type' => $data_type,
                 'data'    => $ticketing->items(),
                 'pagination' => [
                     'current_page' => $ticketing->currentPage(),
@@ -367,10 +449,12 @@ class ExternalApiController extends Controller{
         }
     }
 
-    public function hotelBookingApi(Request $request){
+    public function hotelBookingApi(Request $request)
+    {
         $validator = Validator::make($request->all(), [
-            'status'         => 'nullable|string|in:completed,pending',
+            'status'         => 'nullable|string|in:completed,cancelled',
             'data_type'      => 'nullable|string|in:all,pagination',
+            'book_from'      => 'nullable|string|in:blocked',
             'booking_date'   => 'nullable|string',
             'service_name'   => 'nullable|string|max:255',
             'order_id'       => 'nullable|string|max:100',
@@ -378,6 +462,8 @@ class ExternalApiController extends Controller{
             'transaction_id' => 'nullable|string|max:100',
             'page'           => 'nullable|integer|min:1',
             'per_page'       => 'nullable|integer|min:1|max:100',
+            'fetch_from'     => 'nullable|date_format:Y-m-d H:i:s',
+
         ]);
 
         if ($validator->fails()) {
@@ -388,22 +474,31 @@ class ExternalApiController extends Controller{
         }
 
         $perPage = 20;
-        if($request->filled('per_page')){
+        if ($request->filled('per_page')) {
             $perPage = $request->input('per_page', 20);
         }
 
         $query = DB::table('order_masters as o')
-            ->join('hotel_room_bookings as tb', 'tb.booking_id', '=', 'o.order_id')
-            ->where('o.service_type', 'hotel');
+            ->leftjoin('hotel_room_bookings as tb', 'tb.booking_id', '=', 'o.order_id')
+            ->where('o.service_type', 'hotel')
+            ->where('o.payment_status', 'success');
 
         /*
         * Status
         */
-        $query->where(
-            'o.status',
-            $request->input('status', 'completed')
-        );
+        // $query->whereIn(
+        //     'o.status',
+        //     [$request->input('status', 'completed'), 'cancelled']
+        // );
+        if ($request->filled('status')) {
+            $query->where('o.status', $request->input('status', 'completed'));
+        } else {
+            $query->whereIn('o.status', ['completed', 'cancelled']);
+        }
 
+        if ($request->filled('book_from')) {
+            $query->where('book_from', $request->input('book_from', 'blocked'));
+        }
         /*
         * Booking date
         * Expected format:
@@ -423,10 +518,10 @@ class ExternalApiController extends Controller{
             $startDate = date('Y-m-d', strtotime(trim($dates[0])));
             $endDate   = date('Y-m-d', strtotime(trim($dates[1])));
 
-            if($startDate > $endDate){
+            if ($startDate > $endDate) {
                 return response()->json([
-                    'status'=>0,
-                    'message'=>'Start date cannot be greater than end date'
+                    'status' => 0,
+                    'message' => 'Start date cannot be greater than end date'
                 ], 422);
             }
 
@@ -434,6 +529,10 @@ class ExternalApiController extends Controller{
                 $startDate . ' 00:00:00',
                 $endDate . ' 23:59:59',
             ]);
+        }
+
+        if($request->filled('fetch_from')) {
+            $query->where('o.created_at', '>=', $request->fetch_from);
         }
 
         /*
@@ -480,6 +579,7 @@ class ExternalApiController extends Controller{
         * Select only required columns
         */
         $query->select([
+            'o.service_name_id as hotel_id',
             'o.order_id',
             'o.order_type',
             'o.invoice_id',
@@ -490,37 +590,49 @@ class ExternalApiController extends Controller{
             'o.service_category as event_category',
             'o.status',
             'o.payment_status',
+            'o.book_from',
             'o.created_at as booking_date',
             'o.room_details',
             'o.room_request',
             'o.total_rooms',
             'o.start_date',
             'o.end_date',
-            'tb.adult as adult_count',
-            'tb.children as children_count',
+            'o.total_adults as adult_count',
+            'o.total_child as children_count',
             'tb.extra_person_price',
             'tb.pricing_details',
             'tb.request_for',
-            'tb.totalPrice',
+            'o.total_order_price as totalPrice',
             'tb.user_type',
+            'o.updated_at',
+            DB::raw('
+                CASE
+                    WHEN TIMESTAMPDIFF(MINUTE,o.created_at, o.updated_at) = 0 THEN "Not modified"
+                    WHEN TIMESTAMPDIFF(MINUTE,o.created_at, o.updated_at) < 60 THEN CONCAT(TIMESTAMPDIFF(MINUTE,o.created_at, o.updated_at), " minutes ago")
+                    WHEN TIMESTAMPDIFF(HOUR,o.created_at, o.updated_at) < 24 THEN CONCAT(TIMESTAMPDIFF(HOUR,o.created_at, o.updated_at), " hours ago")
+                    WHEN TIMESTAMPDIFF(DAY,o.created_at, o.updated_at) < 30 THEN CONCAT(TIMESTAMPDIFF(DAY,o.created_at, o.updated_at), " days ago")
+                    WHEN TIMESTAMPDIFF(MONTH,o.created_at, o.updated_at) < 12 THEN CONCAT(TIMESTAMPDIFF(MONTH,o.created_at, o.updated_at), " months ago")
+                    ELSE CONCAT(TIMESTAMPDIFF(YEAR,o.created_at, o.updated_at), " years ago")
+                END as modified_since
+            ')
         ]);
 
         $data_type = 'all';
-        if($request->filled('data_type')){
-            $data_type = $request->input('data_type','pagination');
+        if ($request->filled('data_type')) {
+            $data_type = $request->input('data_type', 'pagination');
         }
-        if($data_type == 'all'){
+        if ($data_type == 'all') {
             $ticketing = $query
-            ->orderBy('o.id', 'desc')
-            ->get();
+                ->orderBy('o.id', 'desc')
+                ->get();
             return response()->json([
-                'status'=>1,
-                'message'=>'Success',
-                'data'=>$ticketing,
-                'total'=>$ticketing->count(),
-                'data_type'=>$data_type
+                'status' => 1,
+                'message' => 'Success',
+                'data' => $ticketing,
+                'total' => $ticketing->count(),
+                'data_type' => $data_type
             ]);
-        }else{
+        } else {
             /*
             * Pagination
             */
@@ -531,7 +643,7 @@ class ExternalApiController extends Controller{
             return response()->json([
                 'status'  => 1,
                 'message' => 'Success',
-                'data_type'=>$data_type,
+                'data_type' => $data_type,
                 'data'    => $ticketing->items(),
                 'pagination' => [
                     'current_page' => $ticketing->currentPage(),

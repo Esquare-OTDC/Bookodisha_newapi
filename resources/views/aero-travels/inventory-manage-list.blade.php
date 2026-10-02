@@ -621,13 +621,13 @@
                 $('#inventorySummary').hide();
                 $('#inventoryNote').hide();
                 $('#seatMapContainer').html(`
-                <div class="empty-state">
-                    <i class="fa fa-chair"></i>
-                    <div>
-                        Select a flight to view seat inventory.
+                    <div class="empty-state">
+                        <i class="fa fa-chair"></i>
+                        <div>
+                            Select a flight to view seat inventory.
+                        </div>
                     </div>
-                </div>
-            `);
+                `);
 
                 updatePassengerDownloadButton();
 
@@ -742,19 +742,8 @@
                     $container.append(html);
                 });
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | AUTO SELECT FIRST FLIGHT
-                |--------------------------------------------------------------------------
-                */
-
                 if (flights.length > 0) {
-
-                    selectFlight(
-                        flights[0]
-                    );
-
+                    selectFlight(flights[0]);
                 }
 
             }
@@ -828,7 +817,6 @@
                             updateInventorySummary(inventoryData);
                             generateSeatMap();
                             $('#inventoryNote').show();
-                            console.log('Seat inventory loaded successfully.', response);
                         } else {
                             inventoryData = null;
                             $('#inventorySummary').hide();
@@ -897,30 +885,84 @@
                     return;
                 }
 
-                let rowsHtml = '';
+               let rowsHtml = '';
+
                 passengers.forEach(function(p, index) {
                     rowsHtml += `
                         <tr>
-                            <td class="text-center" style="vertical-align: middle;">${index + 1}</td>
-                            <td style="vertical-align: middle;"><strong>${escapeHtml(p.flight_number || 'N/A')}</strong></td>
-                            <td style="vertical-align: middle;">${escapeHtml(p.journey_date || 'N/A')}</td>
-                            <td style="vertical-align: middle;">${escapeHtml(p.from_airport || 'N/A')}</td>
-                            <td style="vertical-align: middle;">${escapeHtml(p.to_airport || 'N/A')}</td>
-                            <td style="vertical-align: middle;"><span class="label label-success">${escapeHtml(p.booking_status || 'CONFIRM')}</span></td>
-                            <td style="vertical-align: middle;"><span class="label label-success">${escapeHtml(p.payment_status || 'SUCCESS')}</span></td>
-                            <td style="vertical-align: middle;"><span class="label label-primary">${escapeHtml(p.passenger_type || 'N/A')}</span></td>
-                            <td style="vertical-align: middle;"><strong>${escapeHtml(p.Passanger_name || 'N/A')}</strong></td>
+                            <td class="text-center" style="vertical-align: middle;">
+                                ${index + 1}
+                            </td>
+
                             <td style="vertical-align: middle;">
                                 <strong>
-                                    ${escapeHtml(p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' :'N/A')}
+                                    ${escapeHtml(p["Flight Number"] || 'N/A')}
                                 </strong>
                             </td>
 
-                            <td style="vertical-align: middle;"><strong>${escapeHtml(p.assistance  || 'N/A')}</strong></td>
-                            <td style="vertical-align: middle;">${escapeHtml(p.transaction_id || '-')}</td>
+                            <td style="vertical-align: middle;">
+                                ${escapeHtml(p["Journey Date"] || 'N/A')}
+                            </td>
+
+                            <td style="vertical-align: middle;">
+                                ${escapeHtml(p["From"] || 'N/A')}
+                            </td>
+
+                            <td style="vertical-align: middle;">
+                                ${escapeHtml(p["To"] || 'N/A')}
+                            </td>
+
+                            <td style="vertical-align: middle;">
+                                <span class="label label-success">
+                                    ${escapeHtml(p["Booking Status"] || 'CONFIRMED')}
+                                </span>
+                            </td>
+
+                            <td style="vertical-align: middle;">
+                                <span class="label label-success">
+                                    ${escapeHtml(p["Payment Status"] || 'SUCCESS')}
+                                </span>
+                            </td>
+
+                            <td style="vertical-align: middle;">
+                                <span class="label label-primary">
+                                    ${escapeHtml(p["Passenger Type"] || 'N/A')}
+                                </span>
+                            </td>
+
+                            <td style="vertical-align: middle;">
+                                <strong>
+                                    ${escapeHtml(p["Passenger Name"] || 'N/A')}
+                                </strong>
+                            </td>
+
+                            <td style="vertical-align: middle;">
+                                <strong>
+                                    ${escapeHtml(
+                                        p["Gender"] === 'M'
+                                            ? 'Male'
+                                            : p["Gender"] === 'F'
+                                                ? 'Female'
+                                                : p["Gender"] || 'N/A'
+                                    )}
+                                </strong>
+                            </td>
+
+                            <td style="vertical-align: middle;">
+                                <strong>
+                                    ${escapeHtml(p["Assistance"] || 'N/A')}
+                                </strong>
+                            </td>
+
+                            <td style="vertical-align: middle;">
+                                ${escapeHtml(p["Transaction ID"] || '-')}
+                            </td>
                         </tr>
                     `;
                 });
+
+                $('#passengerTable tbody').html(rowsHtml);
+
 
                 const tableHtml = `
                     <div class="table-responsive">
@@ -1099,105 +1141,36 @@
                 }
             );
 
-            $('#downloadPassengerBtn').on(
-                'click',
-                function() {
+            $('#downloadPassengerBtn').on('click',function() {
+                if (!currentScheduleId) {
+                    alert('Please select a flight first.');
+                    return;
+                }
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Validate Flight
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (!currentScheduleId) {
-
-                        alert(
-                            'Please select a flight first.'
-                        );
-
-                        return;
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Validate Date
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const date =
-                        $('#departDate').val();
-
+                const date = $('#departDate').val();
                     if (!date) {
-
-                        alert(
-                            'Please select journey date.'
-                        );
-
+                        alert('Please select journey date.');
                         return;
                     }
 
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Button Loading
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const $button =
-                        $(this);
-
-                    $button
-                        .prop('disabled', true)
-                        .html(
-                            '<i class="fa fa-spinner fa-spin"></i> Preparing...'
-                        );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Download Passenger CSV
-                    |--------------------------------------------------------------------------
-                    */
+                    const $button = $(this);
+                    $button .prop('disabled', true) .html('<i class="fa fa-spinner fa-spin"></i> Preparing...');
 
                     $.ajax({
-
                         url: "{{ route('inventory-download-passengers-list') }}",
-
                         type: "POST",
-
                         data: {
 
                             _token: "{{ csrf_token() }}",
-
                             schedule_id: currentScheduleId,
-
                             date: date
                         },
-
                         xhrFields: {
                             responseType: 'blob'
                         },
 
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Download Success
-                        |--------------------------------------------------------------------------
-                        */
-
-                        success: function(
-                            blob,
-                            status,
-                            xhr
-                        ) {
-
-                            let filename =
-                                'passenger-list-' +
-                                (
-                                    currentFlightNo ||
-                                    'flight'
-                                ) +
+                        success: function(blob,status,xhr) {
+                            let filename ='passenger-list-' + (currentFlightNo || 'flight') +
                                 '-' +
                                 date +
                                 '.csv';
@@ -1362,35 +1335,31 @@
 
             function showNoFlights(message) {
                 $('#flightsContainer').html(`
-                <div class="empty-state">
-                    <i class="fa fa-plane"></i>
-                    <div>
-                        No flights available
+                    <div class="empty-state">
+                        <i class="fa fa-plane"></i>
+                        <div>
+                            No flights available
+                        </div>
                     </div>
-                </div>
-            `);
+                `);
 
                 $('#currentFlightNo').text('--');
-
                 $('#inventorySummary').hide();
-
                 $('#inventoryNote').hide();
-
                 $('#seatMapContainer').html(`
-                <div class="empty-state">
-                    <i class="fa fa-chair"></i>
-                    <div>
-                        No flight selected
+                    <div class="empty-state">
+                        <i class="fa fa-chair"></i>
+                        <div>
+                            No flight selected
+                        </div>
                     </div>
-                </div>
-            `);
-
+                `);
                 $('#passengerTableContainer').html(`
-                <div class="empty-state" style="text-align: center; padding: 20px; color: #999;">
-                    <i class="fa fa-users" style="font-size: 24px;"></i>
-                    <div style="margin-top: 5px;">Select a flight to view passenger details.</div>
-                </div>
-            `);
+                    <div class="empty-state" style="text-align: center; padding: 20px; color: #999;">
+                        <i class="fa fa-users" style="font-size: 24px;"></i>
+                        <div style="margin-top: 5px;">Select a flight to view passenger details.</div>
+                    </div>
+                `);
 
                 currentScheduleId = null;
                 currentFlightNo = null;
@@ -1401,11 +1370,6 @@
                 updatePassengerDownloadButton();
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | FORMAT TIME
-            |--------------------------------------------------------------------------
-            */
             function formatTime(time) {
                 if (!time) {
                     return '';

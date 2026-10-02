@@ -145,7 +145,7 @@ class Controller extends BaseController
 
     public function sendSms($mobilenumber = null, $msg = null, $template_id = null) {
         require_once public_path('paytm_lib/config_paytm.php');
-        if (PAYTM_ENVIRONMENT == 'PROD') {
+        //if (PAYTM_ENVIRONMENT == 'PROD') {
             $url = "https://govtsms.odisha.gov.in/api/api.php";
             // $msg = $this->cleanString($msg);
             $msg = str_replace(array("&"), array(""), $msg);
@@ -165,7 +165,7 @@ class Controller extends BaseController
             curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
             $resp = curl_exec($curl);
             curl_close($curl);
-        }
+        //}
 
         // $response = json_decode($resp, 1);
         // if ($response['success'] == 'true') {
@@ -220,15 +220,12 @@ class Controller extends BaseController
         @$doc->loadHTML($html);
         $xml = simplexml_import_dom($doc); // just to make xpath more simple
         $images = $xml->xpath('//img');
-        $base64 = '';
         foreach ($images as $img) {
             $path = $img['src'];
             $type = pathinfo($path, PATHINFO_EXTENSION);
             $path = str_replace($site, '', $path);
-            if($path!=''){
-                $data = (file_exists(public_path($path))) ? file_get_contents(public_path($path)) : $img['src'];
-                $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
-            }
+            $data = (file_exists(public_path($path))) ? file_get_contents(public_path($path)) : $img['src'];
+            $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
             $html = str_replace($img['src'], $base64, $html);
         }
         return $html;
