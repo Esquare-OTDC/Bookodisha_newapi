@@ -47,6 +47,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Session;
 use Validator, Redirect, Response;
 use App\OrderMaster;
+Use App\OrderDetail;
 
 class HotelController extends Controller
 {
