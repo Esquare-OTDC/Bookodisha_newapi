@@ -352,7 +352,7 @@ class HallBookingApiController extends Controller
         $totalData = clone $propertyDetails;
         $relatedData = clone $propertyDetails;
         $take = 9;
-        $skip = ($request->pageno == 0 || $request->pageno == 1) ? 0 : ($request->pageno - 1) * $take;
+        $skip = ($request->pageno == 0) ? 0 : ($request->pageno) * $take;
         $totalData = $totalData->where('status', '1')->get()->count();
 
         $propertyDetails = $propertyDetails->where('status', '1')->skip($skip)->take($take)->orderBy($sort_column, $sort_direction)->get()->map(function ($property) use ($hall_Ids, $request, $result) {
