@@ -620,7 +620,7 @@ Route::get('/smtp-test', function () {
 
     try {
         Mail::raw('SMTP is working fine!', function ($message) {
-            $message->to('your_email@gmail.com')
+            $message->to('santoshmishra196@gmail.com')
                     ->subject('SMTP Test Mail');
         });
 
