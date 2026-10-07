@@ -1392,8 +1392,11 @@ class ApiController extends Controller {
                     ['key' => 'package', 'value' => 'Package'],['key' => 'sight seeing', 'value' => 'Sight Seeing'],['key' => 'special tour', 'value' => 'Special Pilgrimage Tours']
                 );
             } elseif ($request->serviceType == 'ticket') {
+                // $responce['ticketType'] = array(
+                //     ['key' => 'Events', 'value' => 'Events'],['key' => 'Experience Ticketing', 'value' => 'Experience'],['key' => 'Entry Ticket', 'value' => 'Entry Ticket']
+                // );
                 $responce['ticketType'] = array(
-                    ['key' => 'Events', 'value' => 'Events'],['key' => 'Experience Ticketing', 'value' => 'Experience'],['key' => 'Entry Ticket', 'value' => 'Entry Ticket']
+                    ['key' => 'Events', 'value' => 'Events'],['key' => 'Entry Ticket', 'value' => 'Light & Sound show Ticket']
                 );
             }
             $VendorData = User::where(['role' => 2, 'status' => 1])->pluck('company', 'id')->toArray();
@@ -4924,7 +4927,7 @@ class ApiController extends Controller {
                 $total_price = 0; $start_time = $end_time = '';
                 if (!empty($TicketDetails)) {
                     if($TicketDetails->ticket_type == 'Slot Booking'){
-                        if(empty($request->start_time) || empty($request->end_time)){
+                        if((empty($request->start_time) || empty($request->end_time) || ($request->start_time == "" || $request->end_time == ""))){
                             $responce['status'] = 0;
                             $responce['message'] = 'Please select time slot.';
                             return response()->json($responce);
