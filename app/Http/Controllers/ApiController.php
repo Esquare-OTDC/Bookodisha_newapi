@@ -1396,8 +1396,11 @@ class ApiController extends Controller {
                 //     ['key' => 'Events', 'value' => 'Events'],['key' => 'Experience Ticketing', 'value' => 'Experience'],['key' => 'Entry Ticket', 'value' => 'Entry Ticket']
                 // );
                 $responce['ticketType'] = array(
-                    ['key' => 'Events', 'value' => 'Events'],['key' => 'Entry Ticket', 'value' => 'Light & Sound show Ticket']
+                    ['key' => 'Events', 'value' => 'Events'],['key' => 'Entry Ticket', 'value' => 'Entry Ticket']
                 );
+                // $responce['ticketType'] = array(
+                //     ['key' => 'Events', 'value' => 'Events'],['key' => 'Entry Ticket', 'value' => 'Light & Sound show Ticket']
+                // );
             }
             $VendorData = User::where(['role' => 2, 'status' => 1])->pluck('company', 'id')->toArray();
             $responce['status'] = 1;
