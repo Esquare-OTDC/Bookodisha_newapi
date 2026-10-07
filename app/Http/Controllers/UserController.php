@@ -11317,6 +11317,11 @@ class UserController extends Controller
                 if (!empty($Ticket)) {
                     $service_name = $Ticket->name;
                 }
+            }elseif($aRow->service_type == 'hall'){
+                $HallProperty = HallProperty::where('id', $aRow->service_id)->select('property_name', 'id')->first();
+                if (!empty($HallProperty)) {
+                    $service_name = $HallProperty->property_name;
+                }
             }
             $vendor_name = isset($Vendors[$aRow->vendor_id]) ? $Vendors[$aRow->vendor_id] : 'N/A';
             $row[] = $vendor_name;

@@ -4923,6 +4923,13 @@ class ApiController extends Controller {
                 $TicketDetails = Ticket::where(['id'=> $request->ticketing_id, 'status' => 'publish'])->first(); //find($request->ticketing_id);
                 $total_price = 0; $start_time = $end_time = '';
                 if (!empty($TicketDetails)) {
+                    if($TicketDetails->ticket_type == 'Slot Booking'){
+                        if(empty($request->start_time) || empty($request->end_time)){
+                            $responce['status'] = 0;
+                            $responce['message'] = 'Please select time slot.';
+                            return response()->json($responce);
+                        }
+                    }
                     if ($TicketDetails->vendor_id == 268 || $TicketDetails->vendor_id == 6048) { // 268  ,  6048
                         $TicketInventory = DB::table('ticket_inventory')->where(['vendor_id' => $TicketDetails->vendor_id, 'date' => date("Y-m-d", strtotime($request->checkinDate)), 'ticket_id' => $TicketDetails->id])->first();
                         if (!empty($TicketInventory)) {
