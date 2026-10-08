@@ -48,6 +48,8 @@ use Session;
 use Validator, Redirect, Response;
 use App\OrderMaster;
 Use App\OrderDetail;
+Use App\OrderLog;
+
 
 class HotelController extends Controller
 {
@@ -11983,7 +11985,9 @@ class HotelController extends Controller
                     return Redirect::to('offline-order')->with('datahdfc', $verify_response);
                 }
             }
-
+            $OrderDataNew = clone $OrderMasterNew;
+            $OrderMasterNew->save();
+            $OrderMasterNew = $OrderDataNew;
             foreach ($room_details as $value) {
                 $HotelRoom = HotelRoom::find($value['id']);
                 $countr = 0;
@@ -12283,7 +12287,7 @@ class HotelController extends Controller
                     catch(\Exception $e) {}
                 }
             }
-            $OrderMasterNew->save();
+            
             // parent::updateMmtInventory($OrderMasterNew->vendor_id, $OrderMasterNew->service_name_id);
             Session::flash('success', 'Order created successfully.');
             return Redirect::to('offline-order');
