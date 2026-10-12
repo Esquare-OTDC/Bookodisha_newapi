@@ -199,7 +199,7 @@ trait ConferenceTraits{
         $inventoryModel->setHallId($this->getHallId())->setExistingInventory();
         $inventoryModel->where('vendor_id', $vendor_id);
 
-        for($i = 0; $i<= 90; $i++){
+        for($i = 0; $i<= 30; $i++){
             $date = date("Y-m-d", strtotime($today . ' + ' . $i . ' days'));
             if(!$inventoryModel->isInventoryExist($date)){
                 $inventory[$count] = [
