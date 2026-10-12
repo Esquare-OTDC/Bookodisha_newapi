@@ -2,54 +2,52 @@
 
 namespace App\Http\Controllers;
 
-use App\AttributeValue;
-use App\BlockedHotel;
-use App\BlockedMmtInventory;
-use App\City;
-use App\CleartripCredential;
-use App\Country;
-use App\Coupon;
-use App\CtpHotelTable;
-use App\CtpRatePlans;
-use App\CtpRoomList;
-use App\CustomerRefund;
-use App\EmailTemplate;
-use App\GstDetail;
-use App\GstTable;
-use App\HotelAvailability;
-use App\HotelEstimate;
-use App\HotelRoom;
-use App\HotelRoomPricing;
-use App\HotelSale;
-use App\MasterHotel;
-use App\MasterInventory;
-use App\MmtRatePlans;
-use App\PasswordRemQuestion;
-use App\PaymentHistory;
-use App\PropertyAccount;
-use App\RoomAttribute;
-use App\RoomAttributeValue;
-use App\Service;
-use App\ServiceAttribute;
-use App\SmsTemplate;
-use App\State;
-use App\SubuserAccess;
-use App\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
+use Validator, Redirect, Response;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use PDF;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use App\PasswordRemQuestion;
+use App\User;
+use App\Country;
+use App\State;
+use App\City;
+use App\Service;
 use Session;
-use Validator, Redirect, Response;
+use App\MasterHotel;
+use App\ServiceAttribute;
+use App\AttributeValue;
+use App\HotelRoom;
+use App\HotelRoomPricing;
+use App\HotelAvailability;
+use App\OrderDetail;
 use App\OrderMaster;
-Use App\OrderDetail;
-Use App\OrderLog;
-
+use App\MasterInventory;
+use App\OrderLog;
+use App\HotelSale;
+use App\BlockedHotel;
+use App\CustomerRefund;
+use App\GstDetail;
+use App\Coupon;
+use App\EmailTemplate;
+use App\GstTable;
+use App\SubuserAccess;
+use App\SmsTemplate;
+use App\RoomAttribute;
+use App\RoomAttributeValue;
+use App\PropertyAccount;
+use App\PaymentHistory;
+use App\MmtRatePlans;
+use App\BlockedMmtInventory;
+use App\HotelEstimate;
+use App\CleartripCredential;
+use App\CtpHotelTable;
+use App\CtpRatePlans;
+use App\CtpRoomList;
+use Illuminate\Support\Str;
 
 class HotelController extends Controller
 {
@@ -474,7 +472,6 @@ class HotelController extends Controller
                             }
                         }
                         $AttributeTerm->name = $request->name;
-                        $AttributeTerm->slug = Str::uuid()->toString() . '-' . Str::random(16);
                         //                        $AttributeTerm->status = $request->attrStatus;
 
                         $AttributeTerm->save();
@@ -5646,2605 +5643,304 @@ class HotelController extends Controller
                 // exit;
                 // // return response()->download($csvname)->deleteFileAfterSend(true);
             }
-        // } elseif ($request->request_type == 'export_hotel_availability_report') {
-
-        //     if (!(parent::checkWritePrivilege(92))) {
-
-        //         return response()->json([
-        //             'status'  => 0,
-        //             'message' => 'You are not authorised to do this operation.'
-        //         ]);
-
-        //     } else {
-
-        //         try {
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Validate Date Range
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             if (empty($request->filter_date)) {
-        //                 return response()->json([
-        //                     'status'  => 0,
-        //                     'message' => 'Please select date range.'
-        //                 ]);
-        //             }
-
-        //             $checkDate = explode(' - ', $request->filter_date);
-
-        //             if (count($checkDate) != 2) {
-        //                 return response()->json([
-        //                     'status'  => 0,
-        //                     'message' => 'Invalid date range.'
-        //                 ]);
-        //             }
-
-        //             $startDate = date(
-        //                 'Y-m-d',
-        //                 strtotime($checkDate[0])
-        //             );
-
-        //             $endDate = date(
-        //                 'Y-m-d',
-        //                 strtotime($checkDate[1])
-        //             );
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Validate Hotel
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $hotelId = (int) $request->hotelId;
-
-        //             if (empty($hotelId)) {
-        //                 return response()->json([
-        //                     'status'  => 0,
-        //                     'message' => 'Please select hotel.'
-        //                 ]);
-        //             }
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Get Hotel
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $hotel = MasterHotel::where(
-        //                 'id',
-        //                 $hotelId
-        //             )->first();
-
-        //             if (!$hotel) {
-        //                 return response()->json([
-        //                     'status'  => 0,
-        //                     'message' => 'Selected hotel not found.'
-        //                 ]);
-        //             }
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Get Published Rooms
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $hotelRooms = HotelRoom::where([
-        //                     'hotel_id' => $hotelId,
-        //                     'status'   => 'publish'
-        //                 ])
-        //                 ->select(
-        //                     'id',
-        //                     'hotel_id',
-        //                     'title',
-        //                     'quantity',
-        //                     'price'
-        //                 )
-        //                 ->orderBy(
-        //                     'price',
-        //                     'DESC'
-        //                 )
-        //                 ->get();
-
-        //             if ($hotelRooms->isEmpty()) {
-        //                 return response()->json([
-        //                     'status'  => 0,
-        //                     'message' => 'No published rooms found for selected hotel.'
-        //                 ]);
-        //             }
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Prepare Room IDs
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $roomIds = $hotelRooms
-        //                 ->pluck('id')
-        //                 ->map(function ($id) {
-        //                     return (int) $id;
-        //                 })
-        //                 ->values()
-        //                 ->toArray();
-
-        //             $rooms = [];
-
-        //             foreach ($hotelRooms as $room) {
-        //                 $rooms[$room->title] = (int) $room->quantity;
-        //             }
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Get All Inventory Once
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $allInventory = MasterInventory::where(
-        //                     'hotel_id',
-        //                     $hotelId
-        //                 )
-        //                 ->whereIn(
-        //                     'room_id',
-        //                     $roomIds
-        //                 )
-        //                 ->whereBetween(
-        //                     'date',
-        //                     [
-        //                         $startDate,
-        //                         $endDate
-        //                     ]
-        //                 )
-        //                 ->select(
-        //                     'hotel_id',
-        //                     'room_id',
-        //                     'date',
-        //                     'initial_quantity',
-        //                     'total_available',
-        //                     'total_booked',
-        //                     'total_blocked'
-        //                 )
-        //                 ->orderBy(
-        //                     'date',
-        //                     'ASC'
-        //                 )
-        //                 ->get();
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Get All Blocked Records Once
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $blockedHotels = BlockedHotel::where(
-        //                     'hotel_id',
-        //                     $hotelId
-        //                 )
-        //                 ->whereBetween(
-        //                     'block_date',
-        //                     [
-        //                         $startDate,
-        //                         $endDate
-        //                     ]
-        //                 )
-        //                 ->select(
-        //                     'hotel_id',
-        //                     'block_date',
-        //                     'rooms'
-        //                 )
-        //                 ->get();
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Build Blocked Lookup
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $blockedLookup = [];
-
-        //             foreach ($blockedHotels as $blockedHotel) {
-
-        //                 $blockDate = date(
-        //                     'Y-m-d',
-        //                     strtotime($blockedHotel->block_date)
-        //                 );
-
-        //                 $blockedRoomIds = array_filter(
-        //                     array_map(
-        //                         'trim',
-        //                         explode(
-        //                             ',',
-        //                             (string) $blockedHotel->rooms
-        //                         )
-        //                     )
-        //                 );
-
-        //                 foreach ($blockedRoomIds as $blockedRoomId) {
-
-        //                     $blockedLookup[
-        //                         $blockDate
-        //                     ][
-        //                         (int) $blockedRoomId
-        //                     ] = true;
-        //                 }
-        //             }
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Room Lookup
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $roomLookup = [];
-
-        //             foreach ($hotelRooms as $room) {
-        //                 $roomLookup[(int) $room->id] = $room;
-        //             }
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Initialise Date-wise Data
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $misData = [];
-
-        //             $currentDate = Carbon::parse(
-        //                 $startDate
-        //             );
-
-        //             $lastDate = Carbon::parse(
-        //                 $endDate
-        //             );
-
-        //             while ($currentDate->lte($lastDate)) {
-
-        //                 $databaseDate = $currentDate->format(
-        //                     'Y-m-d'
-        //                 );
-
-        //                 foreach ($hotelRooms as $room) {
-
-        //                     $misData[
-        //                         $databaseDate
-        //                     ][
-        //                         $room->title
-        //                     ] = [
-        //                         'initial'   => 0,
-        //                         'available' => 0,
-        //                         'booked'    => 0
-        //                     ];
-        //                 }
-
-        //                 $currentDate->addDay();
-        //             }
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Calculate Availability
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             foreach ($allInventory as $inventory) {
-
-        //                 $roomId = (int) $inventory->room_id;
-
-        //                 if (!isset($roomLookup[$roomId])) {
-        //                     continue;
-        //                 }
-
-        //                 $room = $roomLookup[$roomId];
-
-        //                 $inventoryDate = date(
-        //                     'Y-m-d',
-        //                     strtotime($inventory->date)
-        //                 );
-
-        //                 $isBlocked = isset(
-        //                     $blockedLookup[
-        //                         $inventoryDate
-        //                     ][
-        //                         $roomId
-        //                     ]
-        //                 );
-
-        //                 /*
-        //                 * Normal Export:
-        //                 * blocked room = 0
-        //                 * otherwise = total_available
-        //                 */
-        //                 $available = $isBlocked
-        //                     ? 0
-        //                     : (int) (
-        //                         $inventory->total_available
-        //                         ?? 0
-        //                     );
-
-        //                 $misData[
-        //                     $inventoryDate
-        //                 ][
-        //                     $room->title
-        //                 ] = [
-        //                     'initial' =>
-        //                         (int) (
-        //                             $inventory->initial_quantity
-        //                             ?? 0
-        //                         ),
-
-        //                     'available' =>
-        //                         $available,
-
-        //                     'booked' =>
-        //                         (int) (
-        //                             $inventory->total_booked
-        //                             ?? 0
-        //                         )
-        //                 ];
-        //             }
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Total Available Per Room
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $roomInitial = [];
-
-        //             foreach ($hotelRooms as $room) {
-
-        //                 $roomId = (int) $room->id;
-
-        //                 $roomInitial[$roomId] = $allInventory
-        //                     ->where(
-        //                         'room_id',
-        //                         $roomId
-        //                     )
-        //                     ->sum(function ($inventory) {
-        //                         return (int) (
-        //                             $inventory->total_available
-        //                             ?? 0
-        //                         );
-        //                     });
-        //             }
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Final Report Data
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $misHotelData = [
-        //                 'name'  => $hotel->name,
-        //                 'data'  => $misData,
-        //                 'rooms' => $rooms,
-        //                 'total' => $roomInitial
-        //             ];
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Create Spreadsheet
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $spreadsheet = new Spreadsheet();
-
-        //             $sheet = $spreadsheet
-        //                 ->getActiveSheet();
-
-        //             $sheet->setTitle(
-        //                 'Hotel Availability'
-        //             );
-
-        //             $totalColumns =
-        //                 count($misHotelData['rooms']) + 2;
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Main Heading
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $sheet->mergeCellsByColumnAndRow(
-        //                 1,
-        //                 1,
-        //                 $totalColumns,
-        //                 1
-        //             );
-
-        //             $sheet->setCellValueByColumnAndRow(
-        //                 1,
-        //                 1,
-        //                 'Availability status of ' .
-        //                 $misHotelData['name'] .
-        //                 ' as on (' .
-        //                 date('d-m-Y h:i a') .
-        //                 ')'
-        //             );
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Capacity Header
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $sheet->mergeCells(
-        //                 'A2:A3'
-        //             );
-
-        //             $sheet->setCellValueByColumnAndRow(
-        //                 1,
-        //                 2,
-        //                 'Tent Capacity'
-        //             );
-
-        //             $column = 1;
-        //             $totalCapacity = 0;
-
-        //             foreach (
-        //                 $misHotelData['rooms']
-        //                 as $roomTitle => $roomQuantity
-        //             ) {
-
-        //                 $sheet->setCellValueByColumnAndRow(
-        //                     ++$column,
-        //                     2,
-        //                     $roomTitle
-        //                 );
-
-        //                 $sheet->setCellValueByColumnAndRow(
-        //                     $column,
-        //                     3,
-        //                     $roomQuantity
-        //                 );
-
-        //                 $totalCapacity +=
-        //                     $roomQuantity;
-        //             }
-
-        //             $sheet->setCellValueByColumnAndRow(
-        //                 $totalColumns,
-        //                 2,
-        //                 'Total'
-        //             );
-
-        //             $sheet->setCellValueByColumnAndRow(
-        //                 $totalColumns,
-        //                 3,
-        //                 $totalCapacity
-        //             );
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Date-wise Availability
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $row = 4;
-
-        //             foreach (
-        //                 $misHotelData['data']
-        //                 as $date => $dateData
-        //             ) {
-
-        //                 $column = 1;
-        //                 $totalAvailable = 0;
-
-        //                 $sheet->setCellValueByColumnAndRow(
-        //                     $column,
-        //                     $row,
-        //                     date(
-        //                         'd.m.Y',
-        //                         strtotime($date)
-        //                     )
-        //                 );
-
-        //                 foreach (
-        //                     $misHotelData['rooms']
-        //                     as $roomTitle => $roomQuantity
-        //                 ) {
-
-        //                     $available =
-        //                         $dateData[
-        //                             $roomTitle
-        //                         ][
-        //                             'available'
-        //                         ]
-        //                         ?? 0;
-
-        //                     $sheet->setCellValueByColumnAndRow(
-        //                         ++$column,
-        //                         $row,
-        //                         $available
-        //                     );
-
-        //                     $totalAvailable +=
-        //                         $available;
-        //                 }
-
-        //                 $sheet->setCellValueByColumnAndRow(
-        //                     $totalColumns,
-        //                     $row,
-        //                     $totalAvailable
-        //                 );
-
-        //                 $row++;
-        //             }
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Total Available Row
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $sheet->setCellValueByColumnAndRow(
-        //                 1,
-        //                 $row,
-        //                 'Total Available'
-        //             );
-
-        //             $column = 1;
-        //             $grandAvailableTotal = 0;
-
-        //             foreach ($hotelRooms as $room) {
-
-        //                 $roomTotal =
-        //                     $roomInitial[
-        //                         (int) $room->id
-        //                     ]
-        //                     ?? 0;
-
-        //                 $sheet->setCellValueByColumnAndRow(
-        //                     ++$column,
-        //                     $row,
-        //                     $roomTotal
-        //                 );
-
-        //                 $grandAvailableTotal +=
-        //                     $roomTotal;
-        //             }
-
-        //             $sheet->setCellValueByColumnAndRow(
-        //                 $totalColumns,
-        //                 $row,
-        //                 $grandAvailableTotal
-        //             );
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Styling
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $lastColumn = $sheet
-        //                 ->getHighestColumn();
-
-        //             $lastRow = $sheet
-        //                 ->getHighestRow();
-
-        //             $sheet->getStyle(
-        //                 'A1:' .
-        //                 $lastColumn .
-        //                 '3'
-        //             )
-        //                 ->getFont()
-        //                 ->setBold(true);
-
-        //             $sheet->getStyle(
-        //                 'A1:' .
-        //                 $lastColumn .
-        //                 $lastRow
-        //             )
-        //                 ->getAlignment()
-        //                 ->setHorizontal(
-        //                     \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER
-        //                 )
-        //                 ->setVertical(
-        //                     \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER
-        //                 );
-
-        //             $sheet->getStyle(
-        //                 'A1:' .
-        //                 $lastColumn .
-        //                 $lastRow
-        //             )
-        //                 ->getBorders()
-        //                 ->getAllBorders()
-        //                 ->setBorderStyle(
-        //                     \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
-        //                 );
-
-        //             for (
-        //                 $columnIndex = 1;
-        //                 $columnIndex <= $totalColumns;
-        //                 $columnIndex++
-        //             ) {
-
-        //                 $columnLetter =
-        //                     \PhpOffice\PhpSpreadsheet\Cell\Coordinate
-        //                         ::stringFromColumnIndex(
-        //                             $columnIndex
-        //                         );
-
-        //                 $sheet->getColumnDimension(
-        //                     $columnLetter
-        //                 )
-        //                     ->setAutoSize(true);
-        //             }
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Create Documents Directory
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $directory = public_path(
-        //                 'documents'
-        //             );
-
-        //             if (!is_dir($directory)) {
-
-        //                 mkdir(
-        //                     $directory,
-        //                     0755,
-        //                     true
-        //                 );
-        //             }
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | File Name
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $safeHotelName = preg_replace(
-        //                 '/[^A-Za-z0-9_-]/',
-        //                 '_',
-        //                 $misHotelData['name']
-        //             );
-
-        //             $fileName =
-        //                 'documents/Availability_report_' .
-        //                 $safeHotelName .
-        //                 '_' .
-        //                 date('d-m-Y_h-i-s') .
-        //                 '.xlsx';
-
-        //             $fullFilePath =
-        //                 public_path($fileName);
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Save Excel
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             $writer = new Xlsx(
-        //                 $spreadsheet
-        //             );
-
-        //             $writer->save(
-        //                 $fullFilePath
-        //             );
-
-
-        //             /*
-        //             |--------------------------------------------------------------------------
-        //             | Correct Download URL
-        //             |--------------------------------------------------------------------------
-        //             */
-        //             return response()->json([
-        //                 'status'    => 1,
-        //                 'message'   => 'Export completed successfully.',
-        //                 'file_path' => asset($fileName)
-        //             ]);
-
-
-        //         } catch (\Throwable $e) {
-
-        //             \Log::error(
-        //                 'Hotel availability export error',
-        //                 [
-        //                     'message' =>
-        //                         $e->getMessage(),
-
-        //                     'file' =>
-        //                         $e->getFile(),
-
-        //                     'line' =>
-        //                         $e->getLine(),
-
-        //                     'hotel_id' =>
-        //                         $request->hotelId
-        //                 ]
-        //             );
-
-        //             return response()->json([
-        //                 'status'  => 0,
-        //                 'message' => $e->getMessage()
-        //             ], 500);
-        //         }
-        //     }
-
-        } elseif ($request->request_type == 'export_hotel_availability_with_block_report') {
-
+        } elseif ($request->request_type == 'export_hotel_availability_report') {
             if (!(parent::checkWritePrivilege(92))) {
-
-                return response()->json([
-                    'status'  => 0,
-                    'message' => 'You are not authorised to do this operation.'
-                ]);
-
+                $responce['status'] = 0;
+                $responce['message'] = 'You are not autherised to do this operation.';
             } else {
+                $check_date = explode(' - ', $request->filter_date);
+                $start_date = date("Y-m-d", strtotime($check_date[0]));
+                $end_date = date("Y-m-d", strtotime($check_date[1]));
+                $HotelId = $request->hotelId;
+                $HotelList = MasterHotel::where('id', $HotelId)->pluck('name', 'id')->toArray();
+                if (!empty($HotelList)) {
+                    $MisHotelData = array();
+                    foreach ($HotelList as $hotelId => $hotel_name) {
+                        $hotelRooms = HotelRoom::where(['hotel_id' => $hotelId, 'status' => 'publish'])->orderBy('price', 'DESC')->get()->toArray();
+                        $MisData = $rooms = $roomInitial = array();
+                        if (!empty($hotelRooms)) {
+                            $roomName = array_column($hotelRooms, 'title');
+                            $roomQty = array_column($hotelRooms, 'quantity');
+                            $rooms = array_combine($roomName, $roomQty);
 
-                try {
+                            foreach ($hotelRooms as $value) {
+                                $roomInitial[$value['id']] = 0;
+                                $AllInitial = MasterInventory::select('room_id', DB::raw('SUM(total_available) AS totBook'))
+                                            ->where('hotel_id', $hotelId)
+                                            ->where('room_id', $value['id'])
+                                            ->whereBetween('date', [date("Y-m-d", strtotime($start_date)), date("Y-m-d", strtotime($end_date))])
+                                            ->pluck('totBook', 'room_id')
+                                            ->toArray();
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 1. Validate Date Range
-                    |--------------------------------------------------------------------------
-                    */
-                    if (empty($request->filter_date)) {
-
-                        return response()->json([
-                            'status'  => 0,
-                            'message' => 'Please select date range.'
-                        ]);
-                    }
-
-                    $check_date = explode(
-                        ' - ',
-                        $request->filter_date
-                    );
-
-                    if (count($check_date) != 2) {
-
-                        return response()->json([
-                            'status'  => 0,
-                            'message' => 'Invalid date range.'
-                        ]);
-                    }
-
-                    $start_date = date(
-                        'Y-m-d',
-                        strtotime($check_date[0])
-                    );
-
-                    $end_date = date(
-                        'Y-m-d',
-                        strtotime($check_date[1])
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 2. Selected Hotel
-                    |--------------------------------------------------------------------------
-                    */
-                    $HotelId = (int) $request->hotelId;
-
-                    if (empty($HotelId)) {
-
-                        return response()->json([
-                            'status'  => 0,
-                            'message' => 'Please select hotel.'
-                        ]);
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 3. Get Hotel
-                    |--------------------------------------------------------------------------
-                    */
-                    $Hotel = MasterHotel::where(
-                        'id',
-                        $HotelId
-                    )->first();
-
-                    if (!$Hotel) {
-
-                        return response()->json([
-                            'status'  => 0,
-                            'message' => 'Hotel not found.'
-                        ]);
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 4. Get All Published Rooms At Once
-                    |--------------------------------------------------------------------------
-                    */
-                    $hotelRooms = HotelRoom::where([
-                            'hotel_id' => $HotelId,
-                            'status'   => 'publish'
-                        ])
-                        ->orderBy(
-                            'price',
-                            'DESC'
-                        )
-                        ->select(
-                            'id',
-                            'title',
-                            'quantity',
-                            'hotel_id'
-                        )
-                        ->get();
-
-
-                    if ($hotelRooms->isEmpty()) {
-
-                        return response()->json([
-                            'status'  => 0,
-                            'message' => 'No rooms found for selected hotel.'
-                        ]);
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 5. Prepare Room Information
-                    |--------------------------------------------------------------------------
-                    */
-                    $roomIds = $hotelRooms
-                        ->pluck('id')
-                        ->map(function ($id) {
-                            return (int) $id;
-                        })
-                        ->values()
-                        ->toArray();
-
-
-                    $rooms = [];
-
-                    foreach ($hotelRooms as $room) {
-
-                        $rooms[
-                            $room->title
-                        ] = (int) $room->quantity;
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 6. Fetch All Inventory At Once
-                    |--------------------------------------------------------------------------
-                    */
-                    $allInventory = MasterInventory::where(
-                            'hotel_id',
-                            $HotelId
-                        )
-                        ->whereIn(
-                            'room_id',
-                            $roomIds
-                        )
-                        ->whereBetween(
-                            'date',
-                            [
-                                $start_date,
-                                $end_date
-                            ]
-                        )
-                        ->select(
-                            'room_id',
-                            'hotel_id',
-                            'date',
-                            'initial_quantity',
-                            'total_available',
-                            'total_booked',
-                            'total_blocked'
-                        )
-                        ->orderBy(
-                            'date',
-                            'ASC'
-                        )
-                        ->get();
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 7. Fetch All Blocked Records At Once
-                    |--------------------------------------------------------------------------
-                    */
-                    $allBlockedHotels = BlockedHotel::where(
-                            'hotel_id',
-                            $HotelId
-                        )
-                        ->whereBetween(
-                            'block_date',
-                            [
-                                $start_date,
-                                $end_date
-                            ]
-                        )
-                        ->select(
-                            'hotel_id',
-                            'block_date',
-                            'rooms'
-                        )
-                        ->get();
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 8. Build Blocked Lookup
-                    |--------------------------------------------------------------------------
-                    |
-                    | Example:
-                    | $blockedLookup['2026-07-17'][10] = true;
-                    |
-                    |--------------------------------------------------------------------------
-                    */
-                    $blockedLookup = [];
-
-                    foreach ($allBlockedHotels as $blocked) {
-
-                        $blockDate = date(
-                            'Y-m-d',
-                            strtotime(
-                                $blocked->block_date
-                            )
-                        );
-
-                        $blockedRooms = array_filter(
-                            array_map(
-                                'trim',
-                                explode(
-                                    ',',
-                                    (string) $blocked->rooms
-                                )
-                            )
-                        );
-
-                        foreach ($blockedRooms as $roomId) {
-
-                            $blockedLookup[
-                                $blockDate
-                            ][
-                                (int) $roomId
-                            ] = true;
-                        }
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 9. Group Inventory By Room
-                    |--------------------------------------------------------------------------
-                    */
-                    $inventoryByRoom = $allInventory
-                        ->groupBy(
-                            'room_id'
-                        );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 10. Prepare Initial Total
-                    |--------------------------------------------------------------------------
-                    */
-                    $roomInitial = [];
-
-                    foreach ($hotelRooms as $room) {
-
-                        $roomId = (int) $room->id;
-
-                        $roomInventory = $inventoryByRoom->get(
-                            $roomId,
-                            collect()
-                        );
-
-                        /*
-                        * Same idea as your previous code:
-                        * SUM(total_available + total_blocked)
-                        */
-                        $roomInitial[
-                            $roomId
-                        ] = $roomInventory->sum(
-                            function ($item) {
-
-                                return
-                                    (int) ($item->total_available ?? 0)
-                                    +
-                                    (int) ($item->total_blocked ?? 0);
+                                if (!empty($AllInitial) && isset($AllInitial[$value['id']])) {
+                                    $roomInitial[$value['id']] = $AllInitial[$value['id']];
+                                }
+                                $MasterInventory = MasterInventory::where('room_id', $value['id'])
+                                    ->whereBetween('date', [date("Y-m-d", strtotime($start_date)), date("Y-m-d", strtotime($end_date))])
+                                    ->orderBy('date', 'ASC')
+                                    ->get();
+                                foreach ($MasterInventory as $data) {
+                                    $BlockedHotels = BlockedHotel::where('hotel_id', $hotelId)
+                                                    ->where('block_date', date("y-m-d", strtotime($data->date)))
+                                                    ->WhereRaw("find_in_set('" . $value['id'] . "',rooms)")
+                                                    ->get()->toArray();
+                                    if (!empty($BlockedHotels)) {
+                                        $MisData[$data->date][$value['title']] = array('initial' => $data->initial_quantity, 'available' => 0, 'booked' => $data->total_booked);
+                                    }
+                                    else {
+                                        $MisData[$data->date][$value['title']] = array('initial' => $data->initial_quantity, 'available' => $data->total_available, 'booked' => $data->total_booked);
+                                    }
+                                }
                             }
-                        );
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 11. Prepare Availability Data
-                    |--------------------------------------------------------------------------
-                    */
-                    $MisData = [];
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Initialise All Dates And Rooms
-                    |--------------------------------------------------------------------------
-                    */
-                    $currentDate = Carbon::parse(
-                        $start_date
-                    );
-
-                    $lastDate = Carbon::parse(
-                        $end_date
-                    );
-
-                    while (
-                        $currentDate->lte(
-                            $lastDate
-                        )
-                    ) {
-
-                        $databaseDate =
-                            $currentDate->format(
-                                'Y-m-d'
-                            );
-
-                        foreach (
-                            $hotelRooms
-                            as $room
-                        ) {
-
-                            $MisData[
-                                $databaseDate
-                            ][
-                                $room->title
-                            ] = [
-
-                                'initial' =>
-                                    0,
-
-                                'available' =>
-                                    0,
-
-                                'booked' =>
-                                    0
-                            ];
                         }
-
-                        $currentDate->addDay();
+                        $MisHotelData = array('name' => $hotel_name, 'data' => $MisData, 'rooms' => $rooms, 'total' => $roomInitial);
                     }
+                    $spreadsheet = new Spreadsheet();
+                    $sheet = $spreadsheet->getActiveSheet();
+                    $total_column = count($MisHotelData['rooms']) + 2;
 
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 12. Calculate Availability
-                    |--------------------------------------------------------------------------
-                    */
-                    foreach (
-                        $allInventory
-                        as $data
-                    ) {
-
-                        $roomId =
-                            (int) $data->room_id;
-
-                        $inventoryDate = date(
-                            'Y-m-d',
-                            strtotime(
-                                $data->date
-                            )
-                        );
-
-
-                        /*
-                        * Find room title
-                        */
-                        $room = $hotelRooms
-                            ->firstWhere(
-                                'id',
-                                $roomId
-                            );
-
-                        if (!$room) {
-                            continue;
-                        }
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Check Full Block From Memory
-                        |--------------------------------------------------------------------------
-                        */
-                        $isBlocked = isset(
-                            $blockedLookup[
-                                $inventoryDate
-                            ][
-                                $roomId
-                            ]
-                        );
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Availability With Blocked
-                        |--------------------------------------------------------------------------
-                        |
-                        | If fully blocked:
-                        | available = 0
-                        |
-                        | Otherwise:
-                        | available = total_available + total_blocked
-                        |
-                        |--------------------------------------------------------------------------
-                        */
-                        $available = $isBlocked
-                            ? 0
-                            : (
-                                (int) (
-                                    $data->total_available
-                                    ?? 0
-                                )
-                                +
-                                (int) (
-                                    $data->total_blocked
-                                    ?? 0
-                                )
-                            );
-
-
-                        $MisData[
-                            $inventoryDate
-                        ][
-                            $room->title
-                        ] = [
-
-                            'initial' =>
-                                (int) (
-                                    $data->initial_quantity
-                                    ?? 0
-                                ),
-
-                            'available' =>
-                                $available,
-
-                            'booked' =>
-                                (int) (
-                                    $data->total_booked
-                                    ?? 0
-                                )
-                        ];
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 13. Final Report Data
-                    |--------------------------------------------------------------------------
-                    */
-                    $MisHotelData = [
-
-                        'name' =>
-                            $Hotel->name,
-
-                        'data' =>
-                            $MisData,
-
-                        'rooms' =>
-                            $rooms,
-
-                        'total' =>
-                            $roomInitial
-                    ];
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 14. Create Spreadsheet
-                    |--------------------------------------------------------------------------
-                    */
-                    $spreadsheet =
-                        new Spreadsheet();
-
-                    $sheet =
-                        $spreadsheet
-                            ->getActiveSheet();
-
-                    $sheet->setTitle(
-                        'Availability With Blocked'
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Total Columns
-                    |--------------------------------------------------------------------------
-                    */
-                    $total_column =
-                        count(
-                            $MisHotelData[
-                                'rooms'
-                            ]
-                        ) + 2;
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Report Heading
-                    |--------------------------------------------------------------------------
-                    */
-                    $sheet->mergeCellsByColumnAndRow(
-                        1,
-                        1,
-                        $total_column,
-                        1
-                    );
-
-                    $sheet->setCellValueByColumnAndRow(
-                        1,
-                        1,
-                        'Availability status of ' .
-                        $MisHotelData['name'] .
-                        ' as on (' .
-                        date(
-                            'd-m-Y h:i a'
-                        ) .
-                        ')'
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Room Capacity Heading
-                    |--------------------------------------------------------------------------
-                    */
-                    $sheet->mergeCells(
-                        'A2:A3'
-                    );
-
-                    $sheet->setCellValueByColumnAndRow(
-                        1,
-                        2,
-                        'Tent Capacity'
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Room Headers
-                    |--------------------------------------------------------------------------
-                    */
+                    $sheet->mergeCellsByColumnAndRow(1, 1, $total_column, 1);
+                    $sheet->setCellValueByColumnAndRow(1,1,'Availability status of '. $MisHotelData['name'] .' as on ('. date("d-m-Y h:i a") .')');
+                    $sheet->mergeCells('A2:A3');
+                    $sheet->setCellValueByColumnAndRow(1,2,'Tent Capacity');
                     $j = 1;
-
                     $total = 0;
-
-                    foreach (
-                        $MisHotelData[
-                            'rooms'
-                        ]
-                        as $title =>
-                        $quantity
-                    ) {
-
-                        $sheet->setCellValueByColumnAndRow(
-                            ++$j,
-                            2,
-                            $title
-                        );
-
-                        $sheet->setCellValueByColumnAndRow(
-                            $j,
-                            3,
-                            $quantity
-                        );
-
-                        $total +=
-                            $quantity;
+                    foreach($MisHotelData['rooms'] as $keys => $x_value) {
+                        $sheet->setCellValueByColumnAndRow(++$j,2,$keys);
+                        $sheet->setCellValueByColumnAndRow($j,3,$x_value);
+                        $total += $x_value;
                     }
-
-
-                    /*
-                    * Total Header
-                    */
-                    $sheet->setCellValueByColumnAndRow(
-                        $total_column,
-                        2,
-                        'Total'
-                    );
-
-                    $sheet->setCellValueByColumnAndRow(
-                        $total_column,
-                        3,
-                        $total
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 15. Availability Data
-                    |--------------------------------------------------------------------------
-                    */
+                    $sheet->setCellValueByColumnAndRow($total_column,2,'Total');
+                    $sheet->setCellValueByColumnAndRow($total_column,3,$total);
                     $i = 4;
-
-                    foreach (
-                        $MisHotelData[
-                            'data'
-                        ]
-                        as $date =>
-                        $dateData
-                    ) {
-
+                    foreach($MisHotelData['data'] as $dt_key => $sheets_data){
                         $j = 1;
-
-                        $totalAvailable = 0;
-
-
-                        /*
-                        * Date
-                        */
-                        $sheet->setCellValueByColumnAndRow(
-                            $j,
-                            $i,
-                            date(
-                                'd.m.Y',
-                                strtotime(
-                                    $date
-                                )
-                            )
-                        );
-
-
-                        /*
-                        * Room Availability
-                        */
-                        foreach (
-                            $MisHotelData[
-                                'rooms'
-                            ]
-                            as $roomTitle =>
-                            $roomQuantity
-                        ) {
-
-                            $available =
-                                $dateData[
-                                    $roomTitle
-                                ][
-                                    'available'
-                                ]
-                                ?? 0;
-
-
-                            $sheet->setCellValueByColumnAndRow(
-                                ++$j,
-                                $i,
-                                $available
-                            );
-
-
-                            $totalAvailable +=
-                                $available;
+                        $total = 0;
+                        $sheet->setCellValueByColumnAndRow($j,$i,date("d.m.Y", strtotime($dt_key)));
+                        foreach ($sheets_data as $value) {
+                            $sheet->setCellValueByColumnAndRow(++$j,$i,$value['available']);
+                            $total += $value['available'];
                         }
+                        $sheet->setCellValueByColumnAndRow($total_column,$i,$total);
+                        $i++;
+                    }
+                    $sheet->setCellValueByColumnAndRow(1,$i,'Total Available');
+                    $j = 1;
+                    $sold_total = 0;
+                    foreach($MisHotelData['total'] as $keys => $x_value) {
+                        $sheet->setCellValueByColumnAndRow(++$j,$i,$x_value);
+                        $sold_total += $x_value;
+                    }
+                    $sheet->setCellValueByColumnAndRow($total_column,$i,$sold_total);
 
+                    $file_name = 'documents/Availability_report_'. $MisHotelData['name'] .'_'. date("d-m-Y h-i-s") .'.xlsx';
+                    $xsl_name = public_path($file_name);
 
-                        /*
-                        * Total
-                        */
-                        $sheet->setCellValueByColumnAndRow(
-                            $total_column,
-                            $i,
-                            $totalAvailable
-                        );
+                    $writer = new Xlsx($spreadsheet);
+                    $writer->save($xsl_name);
 
+                    $responce['status'] = 1;
+                    $responce['file_path'] = $this->site . $file_name;
+                } else {
+                    $responce['status'] = 0;
+                    $responce['message'] = 'Unable to export report. Please try again.';
+                }
+            }
+        } elseif ($request->request_type == 'export_hotel_availability_with_block_report') {
+            if (!(parent::checkWritePrivilege(92))) {
+                $responce['status'] = 0;
+                $responce['message'] = 'You are not autherised to do this operation.';
+            } else {
+                $check_date = explode(' - ', $request->filter_date);
+                $start_date = date("Y-m-d", strtotime($check_date[0]));
+                $end_date = date("Y-m-d", strtotime($check_date[1]));
+                $HotelId = $request->hotelId;
+                $HotelList = MasterHotel::where('id', $HotelId)->pluck('name', 'id')->toArray();
+                if (!empty($HotelList)) {
+                    $MisHotelData = array();
+                    foreach ($HotelList as $hotelId => $hotel_name) {
+                        $hotelRooms = HotelRoom::where(['hotel_id' => $hotelId, 'status' => 'publish'])->orderBy('price', 'DESC')->get()->toArray();
+                        $MisData = $rooms = $roomInitial = array();
+                        if (!empty($hotelRooms)) {
+                            $roomName = array_column($hotelRooms, 'title');
+                            $roomQty = array_column($hotelRooms, 'quantity');
+                            $rooms = array_combine($roomName, $roomQty);
 
+                            foreach ($hotelRooms as $value) {
+                                $roomInitial[$value['id']] = 0;
+                                $AllInitial = MasterInventory::select('room_id', DB::raw('(SUM(total_available) + SUM(total_blocked)) AS totBook'))
+                                            ->where('hotel_id', $hotelId)
+                                            ->where('room_id', $value['id'])
+                                            ->whereBetween('date', [date("Y-m-d", strtotime($start_date)), date("Y-m-d", strtotime($end_date))])
+                                            ->pluck('totBook', 'room_id')
+                                            ->toArray();
+
+                                if (!empty($AllInitial) && isset($AllInitial[$value['id']])) {
+                                    $roomInitial[$value['id']] = $AllInitial[$value['id']];
+                                }
+                                $MasterInventory = MasterInventory::where('room_id', $value['id'])
+                                    ->whereBetween('date', [date("Y-m-d", strtotime($start_date)), date("Y-m-d", strtotime($end_date))])
+                                    ->orderBy('date', 'ASC')
+                                    ->get();
+                                foreach ($MasterInventory as $data) {
+                                    // $BlockedHotels = BlockedHotel::where('hotel_id', $hotelId)
+                                    //                 ->where('block_date', date("y-m-d", strtotime($data->date)))
+                                    //                 ->WhereRaw("find_in_set('" . $value['id'] . "',rooms)")
+                                    //                 ->get()->toArray();
+                                    // if (!empty($BlockedHotels)) {
+                                    //     $MisData[$data->date][$value['title']] = array('initial' => $data->initial_quantity, 'available' => 0, 'booked' => $data->total_booked);
+                                    // }
+                                    // else {
+                                        $MisData[$data->date][$value['title']] = array('initial' => $data->initial_quantity, 'available' => $data->total_available + $data->total_blocked, 'booked' => $data->total_booked);
+                                    // }
+                                }
+                            }
+                        }
+                        $MisHotelData = array('name' => $hotel_name, 'data' => $MisData, 'rooms' => $rooms, 'total' => $roomInitial);
+                    }
+                    $spreadsheet = new Spreadsheet();
+                    $sheet = $spreadsheet->getActiveSheet();
+                    $total_column = count($MisHotelData['rooms']) + 2;
+
+                    $sheet->mergeCellsByColumnAndRow(1, 1, $total_column, 1);
+                    $sheet->setCellValueByColumnAndRow(1,1,'Availability status of '. $MisHotelData['name'] .' as on ('. date("d-m-Y h:i a") .')');
+                    $sheet->mergeCells('A2:A3');
+                    $sheet->setCellValueByColumnAndRow(1,2,'Tent Capacity');
+                    $j = 1;
+                    $total = 0;
+                    foreach($MisHotelData['rooms'] as $keys => $x_value) {
+                        $sheet->setCellValueByColumnAndRow(++$j,2,$keys);
+                        $sheet->setCellValueByColumnAndRow($j,3,$x_value);
+                        $total += $x_value;
+                    }
+                    $sheet->setCellValueByColumnAndRow($total_column,2,'Total');
+                    $sheet->setCellValueByColumnAndRow($total_column,3,$total);
+                    $i = 4;
+                    foreach($MisHotelData['data'] as $dt_key => $sheets_data){
+                        $j = 1;
+                        $total = 0;
+                        $sheet->setCellValueByColumnAndRow($j,$i,date("d.m.Y", strtotime($dt_key)));
+                        foreach ($sheets_data as $value) {
+                            $sheet->setCellValueByColumnAndRow(++$j,$i,$value['available']);
+                            $total += $value['available'];
+                        }
+                        $sheet->setCellValueByColumnAndRow($total_column,$i,$total);
+                        $i++;
+                    }
+                    $sheet->setCellValueByColumnAndRow(1,$i,'Total Available');
+                    $j = 1;
+                    $sold_total = 0;
+                    foreach($MisHotelData['total'] as $keys => $x_value) {
+                        $sheet->setCellValueByColumnAndRow(++$j,$i,$x_value);
+                        $sold_total += $x_value;
+                    }
+                    $sheet->setCellValueByColumnAndRow($total_column,$i,$sold_total);
+
+                    $file_name = 'documents/Availability_with_block_report_'. $MisHotelData['name'] .'_'. date("d-m-Y h-i-s") .'.xlsx';
+                    $xsl_name = public_path($file_name);
+
+                    $writer = new Xlsx($spreadsheet);
+                    $writer->save($xsl_name);
+
+                    $responce['status'] = 1;
+                    $responce['file_path'] = $this->site . $file_name;
+                } else {
+                    $responce['status'] = 0;
+                    $responce['message'] = 'Unable to export report. Please try again.';
+                }
+            }
+        } elseif ($request->request_type == 'export_all_hotel_availability') {
+            if (!(parent::checkWritePrivilege(92))) {
+                $responce['status'] = 0;
+                $responce['message'] = 'You are not autherised to do this operation.';
+            } else {
+                $check_date = explode(' - ', $request->filter_date);
+                $start_date = date("Y-m-d", strtotime($check_date[0]));
+                $end_date = date("Y-m-d", strtotime($check_date[1]));
+                $MasterHotelQuery = DB::table("master_hotels"); // MasterHotel::where('status', 'publish');
+                $vender_id = 0;
+                if (Auth::user()->access_type == 'vendor') {
+                    $vender_id = (Auth::user()->role == 2) ? Auth::user()->id : Auth::user()->vendor_id;
+                    $MasterHotelQuery->where('vender_id', $vender_id);
+                    if ((Auth::user()->role == 3)) {
+                        $SubuserAccess = SubuserAccess::where(['user_id' => Auth::user()->id, 'service' => 'hotel'])->pluck('service_id', 'id')->toArray();
+                        if (!empty($SubuserAccess)) {
+                            $MasterHotelQuery->whereIn('id', array_values($SubuserAccess));
+                        }
+                    }
+                }
+                $MasterHotel = $MasterHotelQuery->orderBy('id', 'ASC')->pluck('name', 'id')->toArray();
+                if (!empty($MasterHotel)) {
+                    $MisHotelData = array();
+                    foreach ($MasterHotel as $hotelId => $hotel_name) {
+                        $MisHotelData['hotels'][] = $hotel_name;
+                        $hotelRooms = HotelRoom::where(['hotel_id' => $hotelId, 'status' => 'publish'])->pluck('quantity','id')->toArray();
+                        $MisData = $rooms = $roomInitial = array();
+                        if (!empty($hotelRooms)) {
+                            $capacity = array_sum(array_values($hotelRooms));
+                            $MisHotelData['capacity'][] = $capacity;
+
+                            foreach ($hotelRooms as $roomId => $value) {
+                                $MasterInventory = MasterInventory::where('room_id', $roomId)
+                                    ->whereBetween('date', [date("Y-m-d", strtotime($start_date)), date("Y-m-d", strtotime($end_date))])
+                                    ->orderBy('date', 'ASC')
+                                    ->get();
+                                foreach ($MasterInventory as $data) {
+                                    $BlockedHotels = BlockedHotel::where('hotel_id', $hotelId)
+                                                    ->where('block_date', date("y-m-d", strtotime($data->date)))
+                                                    ->WhereRaw("find_in_set('" . $roomId . "',rooms)")
+                                                    ->get()->toArray();
+                                    if (empty($BlockedHotels)) {
+                                        $MisData[$data->date] = isset($MisData[$data->date]) ? $MisData[$data->date] + $data->total_available : $data->total_available;
+                                    } else {
+                                        $MisData[$data->date] = isset($MisData[$data->date]) ? $MisData[$data->date] + 0 : 0;
+                                    }
+                                }
+                            }
+                        }
+                        foreach($MisData as $date => $qty) {
+                            $MisHotelData['data'][$date][] = $qty;
+                        }
+                        // $MisHotelData[] = array('name' => $hotel_name, 'data' => $MisData, 'rooms' => $rooms, 'total' => $roomInitial);
+                    }
+                    $MisHotelData['hotel_qty'] = array_combine($MisHotelData['hotels'], $MisHotelData['capacity']);
+                    // print_r($MisHotelData);exit;
+                    $spreadsheet = new Spreadsheet();
+                    $sheet = $spreadsheet->getActiveSheet();
+                    $total_column = count($MisHotelData['hotels']) + 1;
+                    $Props = ($vender_id == 3) ? 'Eco Retreats' : 'Hotels';
+                    $sheet->mergeCellsByColumnAndRow(1, 1, $total_column, 1);
+                    $sheet->setCellValueByColumnAndRow(1,1,'Availability status of '. $Props .' as on ('. date("d-m-Y h:i a") .')');
+                    $sheet->mergeCells('A2:A3');
+                    $sheet->setCellValueByColumnAndRow(1,2,'Tent Capacity');
+                    $j = 1;
+                    foreach($MisHotelData['hotel_qty'] as $keys => $x_value) {
+                        $sheet->setCellValueByColumnAndRow(++$j,2,$keys);
+                        $sheet->setCellValueByColumnAndRow($j,3,$x_value);
+                    }
+                    $i = 4;
+                    foreach($MisHotelData['data'] as $dt_key => $sheets_data){
+                        $j = 1;
+                        $sheet->setCellValueByColumnAndRow($j,$i,date("d.m.Y", strtotime($dt_key)));
+                        foreach ($sheets_data as $value) {
+                            $sheet->setCellValueByColumnAndRow(++$j,$i,$value);
+                        }
                         $i++;
                     }
 
+                    $file_name = 'documents/Availability_status_of_'. $Props .'_'. date("d-m-Y h-i-s") .'.xlsx';
+                    $xsl_name = public_path($file_name);
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 16. Total Available Row
-                    |--------------------------------------------------------------------------
-                    */
-                    $sheet->setCellValueByColumnAndRow(
-                        1,
-                        $i,
-                        'Total Available'
-                    );
+                    $writer = new Xlsx($spreadsheet);
+                    $writer->save($xsl_name);
 
-
-                    $j = 1;
-
-                    $sold_total = 0;
-
-
-                    foreach (
-                        $hotelRooms
-                        as $room
-                    ) {
-
-                        $value =
-                            $roomInitial[
-                                $room->id
-                            ]
-                            ?? 0;
-
-
-                        $sheet->setCellValueByColumnAndRow(
-                            ++$j,
-                            $i,
-                            $value
-                        );
-
-
-                        $sold_total +=
-                            $value;
-                    }
-
-
-                    $sheet->setCellValueByColumnAndRow(
-                        $total_column,
-                        $i,
-                        $sold_total
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 17. Styling
-                    |--------------------------------------------------------------------------
-                    */
-                    $lastColumn =
-                        $sheet
-                            ->getHighestColumn();
-
-                    $lastRow =
-                        $sheet
-                            ->getHighestRow();
-
-
-                    /*
-                    * Bold
-                    */
-                    $sheet
-                        ->getStyle(
-                            'A1:' .
-                            $lastColumn .
-                            '3'
-                        )
-                        ->getFont()
-                        ->setBold(
-                            true
-                        );
-
-
-                    /*
-                    * Center Alignment
-                    */
-                    $sheet
-                        ->getStyle(
-                            'A1:' .
-                            $lastColumn .
-                            $lastRow
-                        )
-                        ->getAlignment()
-                        ->setHorizontal(
-                            \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER
-                        );
-
-
-                    /*
-                    * Auto Size
-                    */
-                    for (
-                        $column = 1;
-                        $column <= $total_column;
-                        $column++
-                    ) {
-
-                        $columnLetter =
-                            \PhpOffice\PhpSpreadsheet\Cell\Coordinate
-                                ::stringFromColumnIndex(
-                                    $column
-                                );
-
-                        $sheet
-                            ->getColumnDimension(
-                                $columnLetter
-                            )
-                            ->setAutoSize(
-                                true
-                            );
-                    }
-
-
-                    /*
-                    * Borders
-                    */
-                    $sheet
-                        ->getStyle(
-                            'A1:' .
-                            $lastColumn .
-                            $lastRow
-                        )
-                        ->getBorders()
-                        ->getAllBorders()
-                        ->setBorderStyle(
-                            \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
-                        );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 18. Documents Directory
-                    |--------------------------------------------------------------------------
-                    */
-                    $directory =
-                        public_path(
-                            'documents'
-                        );
-
-                    if (
-                        !is_dir(
-                            $directory
-                        )
-                    ) {
-
-                        mkdir(
-                            $directory,
-                            0755,
-                            true
-                        );
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 19. Excel File
-                    |--------------------------------------------------------------------------
-                    */
-                    $safeHotelName = preg_replace(
-                        '/[^A-Za-z0-9_-]/',
-                        '_',
-                        $MisHotelData[
-                            'name'
-                        ]
-                    );
-
-
-                    $file_name =
-                        'documents/Availability_with_block_report_' .
-                        $safeHotelName .
-                        '_' .
-                        date(
-                            'd-m-Y_h-i-s'
-                        ) .
-                        '.xlsx';
-
-
-                    $xsl_name =
-                        public_path(
-                            $file_name
-                        );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 20. Save Excel
-                    |--------------------------------------------------------------------------
-                    */
-                    $writer =
-                        new Xlsx(
-                            $spreadsheet
-                        );
-
-
-                    $writer->save(
-                        $xsl_name
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 21. Return Response
-                    |--------------------------------------------------------------------------
-                    */
-                    return response()->json([
-
-                        'status' =>
-                            1,
-
-                        'message' =>
-                            'Export with blocked completed successfully.',
-
-                        'file_path' =>
-                            asset(
-                                $file_name
-                            )
-                    ]);
-
-
-                } catch (
-                    \Throwable $e
-                ) {
-
-                    \Log::error(
-                        'Hotel availability with block export error',
-                        [
-                            'message' =>
-                                $e->getMessage(),
-
-                            'file' =>
-                                $e->getFile(),
-
-                            'line' =>
-                                $e->getLine()
-                        ]
-                    );
-
-
-                    return response()->json([
-                        'status' =>
-                            0,
-
-                        'message' =>
-                            $e->getMessage()
-                    ], 500);
+                    $responce['status'] = 1;
+                    $responce['file_path'] = $this->site . $file_name;
+                } else {
+                    $responce['status'] = 0;
+                    $responce['message'] = 'Unable to export report. Please try again.';
                 }
             }
-
-
-        }  elseif ($request->request_type == 'export_all_hotel_availability') {
-
-            if (!(parent::checkWritePrivilege(92))) {
-
-                return response()->json([
-                    'status'  => 0,
-                    'message' => 'You are not authorised to do this operation.'
-                ]);
-
-            } else {
-
-                try {
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 1. Validate Date Range
-                    |--------------------------------------------------------------------------
-                    */
-                    if (empty($request->filter_date)) {
-
-                        return response()->json([
-                            'status'  => 0,
-                            'message' => 'Please select date range.'
-                        ]);
-                    }
-
-                    $check_date = explode(
-                        ' - ',
-                        $request->filter_date
-                    );
-
-                    if (count($check_date) != 2) {
-
-                        return response()->json([
-                            'status'  => 0,
-                            'message' => 'Invalid date range.'
-                        ]);
-                    }
-
-                    $start_date = date(
-                        'Y-m-d',
-                        strtotime($check_date[0])
-                    );
-
-                    $end_date = date(
-                        'Y-m-d',
-                        strtotime($check_date[1])
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 2. Get Hotel List
-                    |--------------------------------------------------------------------------
-                    */
-                    $MasterHotelQuery = DB::table(
-                        'master_hotels'
-                    );
-
-                    /*
-                    * Vendor Filter
-                    */
-                    if (
-                        Auth::check() &&
-                        Auth::user()->access_type == 'vendor'
-                    ) {
-
-                        $vendor_id = (
-                            Auth::user()->role == 2
-                        )
-                            ? Auth::user()->id
-                            : Auth::user()->vendor_id;
-
-                        $MasterHotelQuery->where(
-                            'vender_id',
-                            $vendor_id
-                        );
-
-                        /*
-                        * Sub User Access
-                        */
-                        if (Auth::user()->role == 3) {
-
-                            $SubuserAccess =
-                                SubuserAccess::where([
-                                    'user_id' => Auth::user()->id,
-                                    'service' => 'hotel'
-                                ])
-                                ->pluck(
-                                    'service_id',
-                                    'id'
-                                )
-                                ->toArray();
-
-                            if (!empty($SubuserAccess)) {
-
-                                $MasterHotelQuery->whereIn(
-                                    'id',
-                                    array_values(
-                                        $SubuserAccess
-                                    )
-                                );
-                            }
-                        }
-                    }
-
-                    $MasterHotel = $MasterHotelQuery
-                        ->orderBy(
-                            'id',
-                            'ASC'
-                        )
-                        ->pluck(
-                            'name',
-                            'id'
-                        )
-                        ->toArray();
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 3. Check Hotel Data
-                    |--------------------------------------------------------------------------
-                    */
-                    if (empty($MasterHotel)) {
-
-                        return response()->json([
-                            'status'  => 0,
-                            'message' => 'No hotel found.'
-                        ]);
-                    }
-
-                    $hotelIds = array_keys(
-                        $MasterHotel
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 4. Fetch ALL Published Rooms At Once
-                    |--------------------------------------------------------------------------
-                    |
-                    | Old Code:
-                    | One query for every hotel.
-                    |
-                    | New Code:
-                    | One query for all hotels.
-                    |
-                    |--------------------------------------------------------------------------
-                    */
-                    $allRooms = HotelRoom::whereIn(
-                            'hotel_id',
-                            $hotelIds
-                        )
-                        ->where(
-                            'status',
-                            'publish'
-                        )
-                        ->select(
-                            'id',
-                            'hotel_id',
-                            'quantity'
-                        )
-                        ->get();
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Group Rooms By Hotel
-                    |--------------------------------------------------------------------------
-                    */
-                    $roomsByHotel = $allRooms
-                        ->groupBy(
-                            'hotel_id'
-                        );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | All Room IDs
-                    |--------------------------------------------------------------------------
-                    */
-                    $allRoomIds = $allRooms
-                        ->pluck(
-                            'id'
-                        )
-                        ->map(
-                            function ($id) {
-                                return (int) $id;
-                            }
-                        )
-                        ->values()
-                        ->toArray();
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 5. Fetch ALL Inventory At Once
-                    |--------------------------------------------------------------------------
-                    |
-                    | This removes one MasterInventory query per room.
-                    |
-                    |--------------------------------------------------------------------------
-                    */
-                    $allInventory = collect();
-
-                    if (!empty($allRoomIds)) {
-
-                        $allInventory =
-                            MasterInventory::whereIn(
-                                'hotel_id',
-                                $hotelIds
-                            )
-                            ->whereIn(
-                                'room_id',
-                                $allRoomIds
-                            )
-                            ->whereBetween(
-                                'date',
-                                [
-                                    $start_date,
-                                    $end_date
-                                ]
-                            )
-                            ->select(
-                                'hotel_id',
-                                'room_id',
-                                'date',
-                                'total_available',
-                                'total_booked',
-                                'total_blocked',
-                                'initial_quantity'
-                            )
-                            ->orderBy(
-                                'date',
-                                'ASC'
-                            )
-                            ->get();
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 6. Fetch ALL Blocked Hotels At Once
-                    |--------------------------------------------------------------------------
-                    |
-                    | This is the biggest performance improvement.
-                    |
-                    | Old Code:
-                    | One BlockedHotel query for every inventory record.
-                    |
-                    | New Code:
-                    | One query for the entire date range.
-                    |
-                    |--------------------------------------------------------------------------
-                    */
-                    $allBlockedHotels =
-                        BlockedHotel::whereIn(
-                            'hotel_id',
-                            $hotelIds
-                        )
-                        ->whereBetween(
-                            'block_date',
-                            [
-                                $start_date,
-                                $end_date
-                            ]
-                        )
-                        ->select(
-                            'hotel_id',
-                            'block_date',
-                            'rooms'
-                        )
-                        ->get();
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 7. Build Blocked Room Lookup
-                    |--------------------------------------------------------------------------
-                    |
-                    | Example:
-                    |
-                    | $blockedLookup[1][2026-07-17][10] = true;
-                    |
-                    | Hotel = 1
-                    | Date  = 2026-07-17
-                    | Room  = 10
-                    |
-                    |--------------------------------------------------------------------------
-                    */
-                    $blockedLookup = [];
-
-                    foreach (
-                        $allBlockedHotels
-                        as $blocked
-                    ) {
-
-                        $hotelId =
-                            (int) $blocked->hotel_id;
-
-                        $blockDate = date(
-                            'Y-m-d',
-                            strtotime(
-                                $blocked->block_date
-                            )
-                        );
-
-                        $blockedRooms = array_filter(
-                            array_map(
-                                'trim',
-                                explode(
-                                    ',',
-                                    (string) $blocked->rooms
-                                )
-                            )
-                        );
-
-                        foreach (
-                            $blockedRooms
-                            as $roomId
-                        ) {
-
-                            $blockedLookup[
-                                $hotelId
-                            ][
-                                $blockDate
-                            ][
-                                (int) $roomId
-                            ] = true;
-                        }
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 8. Prepare Capacity Data
-                    |--------------------------------------------------------------------------
-                    */
-                    $hotelCapacity = [];
-
-                    foreach (
-                        $MasterHotel
-                        as $hotelId =>
-                        $hotelName
-                    ) {
-
-                        $hotelCapacity[
-                            $hotelId
-                        ] = 0;
-
-                        $hotelRooms =
-                            $roomsByHotel->get(
-                                $hotelId,
-                                collect()
-                            );
-
-                        foreach (
-                            $hotelRooms
-                            as $room
-                        ) {
-
-                            $hotelCapacity[
-                                $hotelId
-                            ] += (int) (
-                                $room->quantity
-                                ?? 0
-                            );
-                        }
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 9. Prepare Date-wise Availability
-                    |--------------------------------------------------------------------------
-                    |
-                    | $availabilityData[date][hotel_id] = quantity
-                    |
-                    |--------------------------------------------------------------------------
-                    */
-                    $availabilityData = [];
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Initialise Every Date And Hotel With Zero
-                    |--------------------------------------------------------------------------
-                    */
-                    $currentDate = Carbon::parse(
-                        $start_date
-                    );
-
-                    $lastDate = Carbon::parse(
-                        $end_date
-                    );
-
-                    while (
-                        $currentDate->lte(
-                            $lastDate
-                        )
-                    ) {
-
-                        $databaseDate =
-                            $currentDate->format(
-                                'Y-m-d'
-                            );
-
-                        foreach (
-                            $MasterHotel
-                            as $hotelId =>
-                            $hotelName
-                        ) {
-
-                            $availabilityData[
-                                $databaseDate
-                            ][
-                                $hotelId
-                            ] = 0;
-                        }
-
-                        $currentDate->addDay();
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Calculate Availability
-                    |--------------------------------------------------------------------------
-                    */
-                    foreach (
-                        $allInventory
-                        as $inventory
-                    ) {
-
-                        $hotelId =
-                            (int) $inventory->hotel_id;
-
-                        $roomId =
-                            (int) $inventory->room_id;
-
-                        $inventoryDate = date(
-                            'Y-m-d',
-                            strtotime(
-                                $inventory->date
-                            )
-                        );
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Check Block Status From Memory
-                        |--------------------------------------------------------------------------
-                        */
-                        $isBlocked = isset(
-                            $blockedLookup[
-                                $hotelId
-                            ][
-                                $inventoryDate
-                            ][
-                                $roomId
-                            ]
-                        );
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Availability
-                        |--------------------------------------------------------------------------
-                        |
-                        | Export All:
-                        |
-                        | Blocked     = 0
-                        | Not Blocked = total_available
-                        |
-                        |--------------------------------------------------------------------------
-                        */
-                        $available =
-                            $isBlocked
-                                ? 0
-                                : (int) (
-                                    $inventory
-                                        ->total_available
-                                    ?? 0
-                                );
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Add Room Availability To Hotel Total
-                        |--------------------------------------------------------------------------
-                        */
-                        if (
-                            isset(
-                                $availabilityData[
-                                    $inventoryDate
-                                ][
-                                    $hotelId
-                                ]
-                            )
-                        ) {
-
-                            $availabilityData[
-                                $inventoryDate
-                            ][
-                                $hotelId
-                            ] += $available;
-                        }
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 10. Create Spreadsheet
-                    |--------------------------------------------------------------------------
-                    */
-                    $spreadsheet =
-                        new Spreadsheet();
-
-                    $sheet =
-                        $spreadsheet
-                            ->getActiveSheet();
-
-                    $sheet->setTitle(
-                        'Hotel Availability'
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Total Columns
-                    |--------------------------------------------------------------------------
-                    |
-                    | Date + Hotels + Total
-                    |
-                    |--------------------------------------------------------------------------
-                    */
-                    $totalColumns =
-                        count(
-                            $MasterHotel
-                        ) + 2;
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Report Heading
-                    |--------------------------------------------------------------------------
-                    */
-                    $sheet->mergeCellsByColumnAndRow(
-                        1,
-                        1,
-                        $totalColumns,
-                        1
-                    );
-
-                    $sheet->setCellValueByColumnAndRow(
-                        1,
-                        1,
-                        'All Hotel Availability Report (' .
-                        date(
-                            'd-m-Y',
-                            strtotime(
-                                $start_date
-                            )
-                        ) .
-                        ' - ' .
-                        date(
-                            'd-m-Y',
-                            strtotime(
-                                $end_date
-                            )
-                        ) .
-                        ')'
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Hotel Header
-                    |--------------------------------------------------------------------------
-                    */
-                    $sheet->setCellValueByColumnAndRow(
-                        1,
-                        2,
-                        'Date'
-                    );
-
-                    $column = 2;
-
-                    foreach (
-                        $MasterHotel
-                        as $hotelId =>
-                        $hotelName
-                    ) {
-
-                        $sheet->setCellValueByColumnAndRow(
-                            $column,
-                            2,
-                            $hotelName
-                        );
-
-                        $column++;
-                    }
-
-
-                    /*
-                    * Total Column
-                    */
-                    $sheet->setCellValueByColumnAndRow(
-                        $column,
-                        2,
-                        'Total'
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Capacity Row
-                    |--------------------------------------------------------------------------
-                    */
-                    $sheet->setCellValueByColumnAndRow(
-                        1,
-                        3,
-                        'Capacity'
-                    );
-
-                    $column = 2;
-
-                    $totalCapacity = 0;
-
-                    foreach (
-                        $MasterHotel
-                        as $hotelId =>
-                        $hotelName
-                    ) {
-
-                        $capacity =
-                            $hotelCapacity[
-                                $hotelId
-                            ]
-                            ?? 0;
-
-                        $sheet->setCellValueByColumnAndRow(
-                            $column,
-                            3,
-                            $capacity
-                        );
-
-                        $totalCapacity +=
-                            $capacity;
-
-                        $column++;
-                    }
-
-
-                    /*
-                    * Total Capacity
-                    */
-                    $sheet->setCellValueByColumnAndRow(
-                        $column,
-                        3,
-                        $totalCapacity
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 11. Date-wise Availability Rows
-                    |--------------------------------------------------------------------------
-                    */
-                    $row = 4;
-
-                    $currentDate =
-                        Carbon::parse(
-                            $start_date
-                        );
-
-                    $lastDate =
-                        Carbon::parse(
-                            $end_date
-                        );
-
-
-                    while (
-                        $currentDate->lte(
-                            $lastDate
-                        )
-                    ) {
-
-                        $databaseDate =
-                            $currentDate->format(
-                                'Y-m-d'
-                            );
-
-
-                        /*
-                        * Date
-                        */
-                        $sheet->setCellValueByColumnAndRow(
-                            1,
-                            $row,
-                            $currentDate->format(
-                                'd-M-Y'
-                            )
-                        );
-
-
-                        $column = 2;
-
-                        $rowTotal = 0;
-
-
-                        /*
-                        * Hotel Values
-                        */
-                        foreach (
-                            $MasterHotel
-                            as $hotelId =>
-                            $hotelName
-                        ) {
-
-                            $available =
-                                $availabilityData[
-                                    $databaseDate
-                                ][
-                                    $hotelId
-                                ]
-                                ?? 0;
-
-
-                            $sheet->setCellValueByColumnAndRow(
-                                $column,
-                                $row,
-                                $available
-                            );
-
-
-                            $rowTotal +=
-                                $available;
-
-
-                            $column++;
-                        }
-
-
-                        /*
-                        * Total
-                        */
-                        $sheet->setCellValueByColumnAndRow(
-                            $column,
-                            $row,
-                            $rowTotal
-                        );
-
-
-                        $row++;
-
-                        $currentDate->addDay();
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 12. Excel Styling
-                    |--------------------------------------------------------------------------
-                    */
-                    $lastColumn =
-                        $sheet
-                            ->getHighestColumn();
-
-                    $lastRow =
-                        $sheet
-                            ->getHighestRow();
-
-
-                    /*
-                    * Bold Heading
-                    */
-                    $sheet
-                        ->getStyle(
-                            'A1:' .
-                            $lastColumn .
-                            '3'
-                        )
-                        ->getFont()
-                        ->setBold(
-                            true
-                        );
-
-
-                    /*
-                    * Center Alignment
-                    */
-                    $sheet
-                        ->getStyle(
-                            'A1:' .
-                            $lastColumn .
-                            $lastRow
-                        )
-                        ->getAlignment()
-                        ->setHorizontal(
-                            \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER
-                        );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Auto Size Columns
-                    |--------------------------------------------------------------------------
-                    */
-                    for (
-                        $col = 1;
-                        $col <= $totalColumns;
-                        $col++
-                    ) {
-
-                        $columnLetter =
-                            \PhpOffice\PhpSpreadsheet\Cell\Coordinate
-                                ::stringFromColumnIndex(
-                                    $col
-                                );
-
-                        $sheet
-                            ->getColumnDimension(
-                                $columnLetter
-                            )
-                            ->setAutoSize(
-                                true
-                            );
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Borders
-                    |--------------------------------------------------------------------------
-                    */
-                    $sheet
-                        ->getStyle(
-                            'A1:' .
-                            $lastColumn .
-                            $lastRow
-                        )
-                        ->getBorders()
-                        ->getAllBorders()
-                        ->setBorderStyle(
-                            \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
-                        );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 13. Create Documents Directory
-                    |--------------------------------------------------------------------------
-                    */
-                    $directory =
-                        public_path(
-                            'documents'
-                        );
-
-                    if (
-                        !is_dir(
-                            $directory
-                        )
-                    ) {
-
-                        mkdir(
-                            $directory,
-                            0755,
-                            true
-                        );
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 14. File Name
-                    |--------------------------------------------------------------------------
-                    */
-                    $file_name =
-                        'documents/All_Hotel_Availability_' .
-                        date(
-                            'd-m-Y_h-i-s'
-                        ) .
-                        '.xlsx';
-
-
-                    $xsl_name =
-                        public_path(
-                            $file_name
-                        );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 15. Save Excel
-                    |--------------------------------------------------------------------------
-                    */
-                    $writer =
-                        new Xlsx(
-                            $spreadsheet
-                        );
-
-                    $writer->save(
-                        $xsl_name
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | 16. Return Response
-                    |--------------------------------------------------------------------------
-                    */
-                    return response()->json([
-                        'status'  => 1,
-
-                        'message' =>
-                            'Export completed successfully.',
-
-                        'file_path' =>
-                            asset(
-                                $file_name
-                            )
-                    ]);
-
-
-                } catch (
-                    \Throwable $e
-                ) {
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Error Log
-                    |--------------------------------------------------------------------------
-                    */
-                    \Log::error(
-                        'Export All Hotel Availability Error',
-                        [
-                            'message' =>
-                                $e->getMessage(),
-
-                            'file' =>
-                                $e->getFile(),
-
-                            'line' =>
-                                $e->getLine()
-                        ]
-                    );
-
-
-                    return response()->json([
-                        'status' =>
-                            0,
-
-                        'message' =>
-                            $e->getMessage()
-                    ], 500);
-                }
-            }
-
         } elseif ($request->request_type == 'export_hotel_gst_report') {
             if (!(parent::checkWritePrivilege(97))) {
                 $responce['status'] = 0;
@@ -11985,9 +9681,7 @@ class HotelController extends Controller
                     return Redirect::to('offline-order')->with('datahdfc', $verify_response);
                 }
             }
-            $OrderDataNew = clone $OrderMasterNew;
-            $OrderMasterNew->save();
-            $OrderMasterNew = $OrderDataNew;
+
             foreach ($room_details as $value) {
                 $HotelRoom = HotelRoom::find($value['id']);
                 $countr = 0;
@@ -12287,7 +9981,7 @@ class HotelController extends Controller
                     catch(\Exception $e) {}
                 }
             }
-            
+            $OrderMasterNew->save();
             // parent::updateMmtInventory($OrderMasterNew->vendor_id, $OrderMasterNew->service_name_id);
             Session::flash('success', 'Order created successfully.');
             return Redirect::to('offline-order');
