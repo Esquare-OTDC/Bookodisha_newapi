@@ -168,7 +168,7 @@ class TicketingController extends Controller {
             $row = array();
 
             $User = User::find($aRow->vendor_id);
-            
+
             $row[] = '<div class="checkbox-fade fade-in-primary"><label><input type="checkbox" value="' . $aRow->id . '" class="itemcheck"><span class="cr"><i class="cr-icon icofont icofont-ui-check txt-primary"></i></span></label></div>';
             if (Auth::user()->access_type == 'superadmin') {
                 $row[] = !empty($User) ? $User->company : 'N/A';
@@ -235,7 +235,7 @@ class TicketingController extends Controller {
                 $responce['message'] = 'You are not autherised to do this operation.';
             } else {
                 $item_array = json_decode($request->IdArray);
-                DB::table('tickets')->whereIn('id', $item_array)->update(['show_price' => 0, 'update_user' => Auth::user()->id]);               
+                DB::table('tickets')->whereIn('id', $item_array)->update(['show_price' => 0, 'update_user' => Auth::user()->id]);
                 $responce['status'] = 1;
                 $responce['message'] = 'Ticket price hidden successfully.';
             }
@@ -263,9 +263,9 @@ class TicketingController extends Controller {
                         }
                     }
                     $Ticket->delete();
-                    
+
                     TicketAvailability::where('ticket_id', $Ticket->id)->delete();
-                    
+
                     $responce['status'] = 1;
                     $responce['message'] = 'Ticketing deleted successfully.';
                 } else {
@@ -370,7 +370,7 @@ class TicketingController extends Controller {
                         }
                         $AttributeTerm->name = $request->name;
                         // $AttributeTerm->status = $request->attrStatus;
-                        
+
                         $AttributeTerm->save();
                         $responce['status'] = 1;
                         $responce['message'] = 'Changes saved successfully.';
@@ -421,7 +421,7 @@ class TicketingController extends Controller {
                 $Ticket = $TicketQuery->pluck('id')->toArray();
                 $check_date = date("Y-m-d", strtotime($request->filter_date));
                 $html = '';
-                
+
                 if ($request->report_type == 'book_date') {
                     $html = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Odisha Tourism</title></head><body style="color:#000;"><div style="margin:0 auto; width:760px; padding-left:10px; padding-right:10px; padding-bottom:10px; padding-top:10px; border:1px solid #333; border-radius: 4px; background:#fff;">
                     <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border:1px solid #000; border-radius: 4px;">
@@ -435,7 +435,7 @@ class TicketingController extends Controller {
                     <th align="center" valign="top" style="color:#000;border-right:1px solid #000; border-bottom:1px solid #000;"><strong>Total Amount</strong></th>
                     <th align="center" valign="top" style="color:#000;border-right:1px solid #000; border-bottom:1px solid #000;"><strong>Booking Source</strong></th>
                     <th align="center" valign="top" style="color:#000;border-right:1px solid #000; border-bottom:1px solid #000;"><strong>Booking Status</strong></th></tr>';
-                    
+
                     $OrderMaster = OrderMaster::where(['service_type' => 'ticketing', 'payment_status' => 'success'])
                                     ->whereIn('service_name_id', $Ticket)
                                     ->where('created_at', 'LIKE', $check_date .'%')
@@ -475,7 +475,7 @@ class TicketingController extends Controller {
                             $time = $value->start_time .' - '. $value->end_time;
                             $hotelId = $value->service_name_id;
                             $hotelName = $value->service_name;
-                            
+
 
                             $MisHotelData[$hotelId]['data'][] = array(
                                 'invoice_id' => $value->invoice_id,
@@ -484,12 +484,12 @@ class TicketingController extends Controller {
                                 'guest_phone' => $value->customer_phone,
                                 'guest_email' => $value->customer_email,
                                 'unit_name' => $value->service_name,
-                                'check_in' => $start_date, 
+                                'check_in' => $start_date,
                                 'time' => $time,
                                 'occupancy' => $value->total_guests,
                                 'total_amount' => $value->total_order_price,
                                 'order_type' => $value->order_type,
-                            );                        
+                            );
 
                             $MisHotelData[$hotelId]['name'] = $hotelName;
                             $MisHotelData[$hotelId]['total_book'] = (isset($MisHotelData[$hotelId]['total_book'])) ? $MisHotelData[$hotelId]['total_book'] + 1 : 1;
@@ -521,19 +521,19 @@ class TicketingController extends Controller {
                             <th align="center" valign="top" style="color:#000;border-right:1px solid #000;border-bottom:1px solid #000;padding:5px;">'. $val['total_occupancy'] .'</th>
                             <th align="center" valign="top" style="color:#000;border-right:1px solid #000;border-bottom:1px solid #000;padding:5px;"></th>
                             </tr></table>';
-                            
+
                         }
                     }
                     $html .= '</div></body></html>';
                 }
-                
+
                 $file = 'documents/Ticket_booking_report_' . date("d-m-Y h-i-a") . '.pdf';
                 $pdfname = public_path($file);
                 PDF::loadHTML(html_entity_decode($html))->save($pdfname);
                 // echo $this->site . $file;
                 // exit;
                 $responce['status'] = 1;
-                $responce['file_path'] = $file; 
+                $responce['file_path'] = $file;
                 // return response()->download($pdfname)->deleteFileAfterSend(true);
             }
         }
@@ -559,16 +559,16 @@ class TicketingController extends Controller {
                 }
                 $Ticket = $TicketQuery->pluck('id')->toArray();
                 $check_date = date("Y-m-d", strtotime($request->filter_date));
-                
-                if ($request->report_type == 'book_date') {                   
 
-                    $spreadsheet = new Spreadsheet(); 
+                if ($request->report_type == 'book_date') {
+
+                    $spreadsheet = new Spreadsheet();
                     $sheet = $spreadsheet->getActiveSheet();
                     $total_column = 9;
 
                     $sheet->mergeCellsByColumnAndRow(1, 1, $total_column, 1);
                     $sheet->setCellValueByColumnAndRow(1,1,'(Booking Date - '. date("d-M-Y", strtotime($check_date)) .')');
-                    
+
                     $sheet->setCellValueByColumnAndRow(1,2,'Booking ID');
                     $sheet->setCellValueByColumnAndRow(2,2,'Booking Date');
                     $sheet->setCellValueByColumnAndRow(3,2,'Guest');
@@ -605,14 +605,14 @@ class TicketingController extends Controller {
                     $file_name = 'documents/Ticket_booking_report_'. date("d-m-Y h-i-s") .'.xlsx';
                     $xsl_name = public_path($file_name);
 
-                    $writer = new Xlsx($spreadsheet); 
+                    $writer = new Xlsx($spreadsheet);
                     $writer->save($xsl_name);
 
                     $responce['status'] = 1;
                     $responce['file_path'] = $this->site . $file_name;
                 } elseif ($request->report_type == 'stay_date') {
                     // $html = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>Odisha Tourism</title></head><body style="color:#000;"><div style="margin:0 auto; width:760px; padding-left:10px; padding-right:10px; padding-bottom:10px; padding-top:10px; border:1px solid #333; border-radius: 4px; background:#fff;">';
-                    
+
                     $Orders = OrderMaster::where(['status' => 'completed'])
                             ->where('service_type', 'ticketing')
                             ->whereIn('service_name_id', $Ticket)
@@ -622,7 +622,7 @@ class TicketingController extends Controller {
                         $MisHotelData = array();
                         foreach ($Orders as $key => $value) {
                             $hotelId = $hotelName = $start_date = $time = '';
-                            
+
                             $start_date = date("d-M-Y", strtotime($value->start_date));
                             $time = $value->start_time .' - '. $value->end_time;
                             $hotelId = $value->service_name_id;
@@ -635,25 +635,25 @@ class TicketingController extends Controller {
                                 'guest_phone' => $value->customer_phone,
                                 'guest_email' => $value->customer_email,
                                 'unit_name' => $value->service_name,
-                                'check_in' => $start_date, 
+                                'check_in' => $start_date,
                                 'time' => $time,
                                 'occupancy' => $value->total_guests,
                                 'total_amount' => $value->total_order_price,
                                 'order_type' => $value->order_type,
-                            );                        
+                            );
 
                             $MisHotelData[$hotelId]['name'] = $hotelName;
                             $MisHotelData[$hotelId]['total_book'] = (isset($MisHotelData[$hotelId]['total_book'])) ? $MisHotelData[$hotelId]['total_book'] + 1 : 1;
                             $MisHotelData[$hotelId]['total_occupancy'] = (isset($MisHotelData[$hotelId]['total_occupancy'])) ? $MisHotelData[$hotelId]['total_occupancy'] + $value->total_guests : $value->total_guests;
                         }
-                        
-                        $spreadsheet = new Spreadsheet(); 
+
+                        $spreadsheet = new Spreadsheet();
                         $sheet = $spreadsheet->getActiveSheet();
                         $total_column = 8;
 
                         $i = 1;
                         foreach ($MisHotelData as $key => $val) {
-                            
+
                             $sheet->mergeCellsByColumnAndRow(1, $i, $total_column, $i);
                             $sheet->setCellValueByColumnAndRow(1,$i,$val['name'] .' (Stay by Date - '. date("d-M-Y", strtotime($check_date)) .')');
                             $i++;
@@ -665,9 +665,9 @@ class TicketingController extends Controller {
                             $sheet->setCellValueByColumnAndRow(5,$i,'Time');
                             $sheet->setCellValueByColumnAndRow(6,$i,'Occupancy');
                             $sheet->setCellValueByColumnAndRow(7,$i,'Total Amount');
-                            $sheet->setCellValueByColumnAndRow(8,$i,'Booking Source');                                                        
+                            $sheet->setCellValueByColumnAndRow(8,$i,'Booking Source');
                             $i++;
-                            
+
                             foreach($val['data'] as $details) {
                                 $sheet->setCellValueByColumnAndRow(1,$i,$details['invoice_id']);
                                 $sheet->setCellValueByColumnAndRow(2,$i,$details['guest_name'] .' , '. $details['guest_phone'] .' , '. $details['guest_email']);
@@ -688,27 +688,27 @@ class TicketingController extends Controller {
                             // <th align="center" valign="top" style="color:#000;border-right:1px solid #000;border-bottom:1px solid #000;padding:5px;">'. $val['total_occupancy'] .'</th>
                             // <th align="center" valign="top" style="color:#000;border-right:1px solid #000;border-bottom:1px solid #000;padding:5px;" colspan="4"></th>
                             // </tr></table>';
-                            
+
                         }
                     }
                     $file_name = 'documents/Ticket_stay_by_date_report_'. date("d-m-Y h-i-s") .'.xlsx';
                     $xsl_name = public_path($file_name);
 
-                    $writer = new Xlsx($spreadsheet); 
+                    $writer = new Xlsx($spreadsheet);
                     $writer->save($xsl_name);
 
                     $responce['status'] = 1;
                     $responce['file_path'] = $this->site . $file_name;
                     // $html .= '</div></body></html>';
                 }
-                
+
                 // $file = 'documents/Booking_report_' . date("d-m-Y h-i-a") . '.pdf';
                 // $pdfname = public_path($file);
                 // PDF::loadHTML(html_entity_decode($html))->save($pdfname);
                 // // echo $this->site . $file;
                 // // exit;
                 // $responce['status'] = 1;
-                // $responce['file_path'] = $file; 
+                // $responce['file_path'] = $file;
                 // // return response()->download($pdfname)->deleteFileAfterSend(true);
             }
         }
@@ -747,7 +747,7 @@ class TicketingController extends Controller {
                     $Prebooking->customer_id = $userId;
                     $Prebooking->approve_status = 1;
                     $Prebooking->save();
-                    
+
                     $admin = User::where('role', 1)->first();
                     $UserTemplete = EmailTemplate::where('ref_code', 'PrebookingApprove')->first();
                     $Message = str_replace(array("~firstname~", "~lastname~", "~website_url~", "~site_url~"), array($Prebooking->cust_first_name, $Prebooking->cust_last_name, $this->frontendUrl, $this->site), $UserTemplete->source);
@@ -843,7 +843,7 @@ class TicketingController extends Controller {
             if (!empty($TicketData)) {
                 $start_date = $TicketData->start_date;
                 $end_date = $TicketData->end_date;
-                
+
                 $responce['status'] = 1;
                 $responce['start_date'] = $start_date;
                 $responce['end_date'] = $end_date;
@@ -858,14 +858,14 @@ class TicketingController extends Controller {
             $csvname = public_path($csv);
 
             $headerArr = array('Request Date', 'Application No', 'Ticket Name', 'Customer Name', 'Customer Mobile no', 'Customer Email', 'Gender', 'Adult', 'Child', 'Country', 'State', 'City', 'Type of Experience', 'Experience Description', 'Publication', 'Social Media Handle', 'Social Media URL', 'Identity Type', 'Identity Files', 'Approval Status');
-            
+
             $fp = fopen($csvname, 'w');
             fputcsv($fp, $headerArr);
             if (!empty($OrderMaster)) {
                 foreach ($OrderMaster as $value) {
                     $idArr = json_decode($value->identity_file, 1);
                     $identities = array_map(function($val) { return $this->site . $val; } , $idArr);
-                    
+
                     $data['created_at'] = date("Y-m-d", strtotime($value->created_at));
                     $data['application_no'] = $value->application_no;
                     $data['service_name'] = $value->service_name;
@@ -878,7 +878,7 @@ class TicketingController extends Controller {
                     $data['customer_country'] = $value->customer_country;
                     $data['customer_state'] = $value->customer_state;
                     $data['customer_city'] = $value->customer_city;
-                    
+
                     $data['type_of_experience'] = $value->type_of_experience .' - '. $value->year_of_experience .' year(s)';
                     $data['description_experience'] = $value->description_experience;
                     $data['publication'] = $value->publication;
@@ -900,12 +900,12 @@ class TicketingController extends Controller {
             $csvname = public_path($csv);
 
             $headerArr = array('Request Date', 'Application No', 'Ticket Name', 'Customer Name', 'Customer Mobile no', 'Customer Email', 'Gender', 'Country', 'State', 'City');
-            
+
             $fp = fopen($csvname, 'w');
             fputcsv($fp, $headerArr);
             if (!empty($OrderMaster)) {
                 foreach ($OrderMaster as $value) {
-                    
+
                     $data['created_at'] = date("Y-m-d", strtotime($value->created_at));
                     $data['application_no'] = $value->application_no;
                     $data['service_name'] = $value->service_name;
@@ -1072,7 +1072,7 @@ class TicketingController extends Controller {
 
             $add_phone = $arr = explode(",", $request->additional_phone);
             $add_phone = array_filter($add_phone, function ($n) { return !empty(trim($n)); });
-            
+
             $Ticketing = new Ticket([
                 'vendor_id' => $request->vendor_id,
                 'name' => trim($request->name),
@@ -1092,7 +1092,7 @@ class TicketingController extends Controller {
                 'adult_price' => $request->adult_price,
                 'child_price' => $request->child_price,
                 'ticket_type' => $request->ticket_type,
-                'slots' => $slots,                
+                'slots' => $slots,
                 'start_date' => $start_date,
                 'end_date' => $end_date,
                 'start_time' => $start_time,
@@ -1107,7 +1107,7 @@ class TicketingController extends Controller {
                 'property' => (!empty($Property)) ? json_encode($Property) : '',
                 'property_slug' => implode("~", $property_slug_array),
                 'status' => $request->status,
-                'create_user' => Auth::user()->id, 
+                'create_user' => Auth::user()->id,
                 'terms_conditions' => $request->terms_conditions,
                 'contact_email' => $request->contact_email,
                 'contact_number' => $request->contact_number,
@@ -1173,7 +1173,7 @@ class TicketingController extends Controller {
             }
             $TicketDetails->property = $data;
             $TicketDetails->faqs = !empty($TicketDetails->faqs) ? json_decode($TicketDetails->faqs, 1) : [];
-            $TicketDetails->extra_services = !empty($TicketDetails->extra_services) ? json_decode($TicketDetails->extra_services, 1) : [];        
+            $TicketDetails->extra_services = !empty($TicketDetails->extra_services) ? json_decode($TicketDetails->extra_services, 1) : [];
             $TicketDetails->start_time = date("H:i", strtotime($TicketDetails->start_time));
             $TicketDetails->end_time = date("H:i", strtotime($TicketDetails->end_time));
             $TicketDetails->book_end_time = date("H:i", strtotime($TicketDetails->book_end_time));
@@ -1527,7 +1527,7 @@ class TicketingController extends Controller {
             }
         }
     }
-    
+
     public function ticketBlockData() {
         if (!(parent::checkViewPrivilege(65))) {
             Session::flash('success', 'You are not autherised to view this page.');
@@ -1572,7 +1572,7 @@ class TicketingController extends Controller {
          * on very large tables, and MySQL's regex functionality is very limited
          */
         $vender_id = (Auth::user()->role == 2) ? Auth::user()->id : Auth::user()->vendor_id;
-        $vender_condition = '`vendor_id` = ' . $vender_id; 
+        $vender_condition = '`vendor_id` = ' . $vender_id;
         if ((Auth::user()->role == 3)) {
             $SubuserAccess = SubuserAccess::where(['user_id' => Auth::user()->id, 'service' => 'ticketing'])->pluck('service_id', 'id')->toArray();
             $staff_condition = '';
@@ -1582,7 +1582,7 @@ class TicketingController extends Controller {
             $vendor_condtition .= $staff_condition;
         }
         $sWhere = 'WHERE `vendor_id` = ' . $vender_id;
-        
+
         if (isset($_POST['search']['value']) && $_POST['search']['value'] != "") {
             $sWhere .= " AND (";
             for ($i = 0; $i < count($aColumns); $i++) {
@@ -1641,7 +1641,7 @@ class TicketingController extends Controller {
             $row[] = ($aRow->status == '1') ? '<span style="text-transform: capitalize;font-size: 12px;color: #fff;background-color: #717171;font-weight: 700;border-radius: 0.25rem;padding: 0.25em 0.4em;">Blocked</span>' : '<span style="background-color: #28a745;font-size: 12px;font-weight: 700;border-radius: 0.25rem;padding: 0.25em 0.4em;color: #fff;text-transform: capitalize;">Available</span>';
             $row[] = '<div class="btn-group">
                 <button aria-expanded="false" data-toggle="dropdown" class="btn btn-info btn-xs btn-outline dropdown-toggle waves-effect waves-light" type="button">Action <span class="caret"></span></button>
-                <ul role="menu" class="dropdown-menu">                    
+                <ul role="menu" class="dropdown-menu">
                     <li><a href="javascript:void(0);" class="delete-data" data-id="' . $aRow->id . '">Delete</a></li>
                 </ul>
             </div>';
@@ -1682,7 +1682,7 @@ class TicketingController extends Controller {
         } else {
             $Ticket = Ticket::find($request->ticket_id);
             $block_date = explode(' - ', $request->block_date);
-            
+
             $difference = strtotime(date("Y-m-d", strtotime($block_date[1]))) - strtotime(date("Y-m-d", strtotime($block_date[0])));
             $days = round($difference / (60 * 60 * 24));
             $AvailabilityData = array();
@@ -1703,13 +1703,13 @@ class TicketingController extends Controller {
             return Redirect::to('ticket-block-data');
         }
     }
-    
+
     public function ticketBooking() {
         if (!(parent::checkViewPrivilege(66))) {
             Session::flash('success', 'You are not autherised to view this page.');
             return redirect()->back();
         }
-        $ticket_id = ''; 
+        $ticket_id = '';
         $start_date = date("Y-m-d");
         $end_date = date("Y-m-d", strtotime('+1 days'));
         $OrderData = array();
@@ -1731,14 +1731,14 @@ class TicketingController extends Controller {
                 $CancelData = DB::table('order_masters')->select(DB::raw('SUM(total_guests) as totQty'))
                         ->where(['service_type' => 'ticketing', 'service_name_id' => $ticket_id, 'start_date' => $checkDate, 'status' => 'cancelled', 'payment_status' => 'success'])
                         ->first();
-                
+
                 $OrderData[] = array(
                     'date' => $checkDate,
                     'completeQty' => !is_null($CompleteData->totQty) ? $CompleteData->totQty : 0,
                     'pendingQty' => !is_null($PendingData->totQty) ? $PendingData->totQty : 0,
                     'cancelQty' => !is_null($CancelData->totQty) ? $CancelData->totQty : 0
                 );
-            }            
+            }
         }
         $vender_id = (Auth::user()->role == 2) ? Auth::user()->id : Auth::user()->vendor_id;
         // $Ticket = Ticket::where('status', 'publish')->where('vendor_id', $vender_id)->orderBy('name', 'ASC')->pluck('name', 'id');
@@ -1778,7 +1778,7 @@ class TicketingController extends Controller {
         $TicketId = 0;
         if (isset($_GET['check_date']) && isset($_GET['report_type']) && isset($_GET['ticket_id'])) {
             $TicketId = $_GET['ticket_id'];
-            
+
             $TicketList = array();
             if ($TicketId != 0 && isset($Ticket[$TicketId])) {
                 $TicketList[$TicketId] = $Ticket[$TicketId];
@@ -1788,7 +1788,7 @@ class TicketingController extends Controller {
             $check_date = date("Y-m-d", strtotime($_GET['check_date']));
             if ($_GET['report_type'] == 'book_date') {
                 $report_type = 'book_date';
-            
+
                 $Orders = OrderMaster::where(['service_type' => 'ticketing', 'payment_status' => 'success'])
                             ->whereIn('service_name_id', array_keys($TicketList))
                             ->where('created_at', 'LIKE', $check_date .'%')
@@ -1818,7 +1818,7 @@ class TicketingController extends Controller {
                     }
                 }
             } elseif ($_GET['report_type'] == 'stay_date') {
-                $report_type = 'stay_date';                
+                $report_type = 'stay_date';
                 $Orders = OrderMaster::where(['status' => 'completed'])
                             ->where('service_type', 'ticketing')
                             ->whereIn('service_name_id', array_keys($TicketList))
@@ -1827,13 +1827,13 @@ class TicketingController extends Controller {
                 if (!empty($Orders->toArray())) {
                     foreach ($Orders as $key => $value) {
                         $hotelId = $hotelName = $rooms = $start_date = $end_date = '';$night = 0;
-                        
+
                         $start_date = date("d-M-Y", strtotime($value->start_date));
                         $time = $value->start_time .' - '. $value->end_time;
                         $hotelId = $value->service_name_id;
                         $hotelName = $value->service_name;
-                        
-                        
+
+
 
                         $MisTicketData[$hotelId]['data'][] = array(
                             'invoice_id' => $value->invoice_id,
@@ -2017,7 +2017,7 @@ class TicketingController extends Controller {
 
         foreach ($rResult as $aRow) {
             $row = array();
-                        
+
             $cust_details = $aRow->cust_first_name .' '.  $aRow->cust_last_name .'<br>'. $aRow->phone .'<br>'. $aRow->email;
             $cust_addr = $aRow->customer_city .',<br>'.  $aRow->customer_state .',<br>'. $aRow->customer_country;
             $guest_data = ($aRow->child > 0) ? 'Adult: '. $aRow->adult .'<br>Child: '. $aRow->child : 'Adult: '. $aRow->adult;
@@ -2182,9 +2182,9 @@ class TicketingController extends Controller {
 
         foreach ($rResult as $aRow) {
             $row = array();
-                        
-            $cust_details = $aRow->cust_first_name .' '.  $aRow->cust_last_name;            
-            
+
+            $cust_details = $aRow->cust_first_name .' '.  $aRow->cust_last_name;
+
             $row[] = $aRow->application_no;
             $row[] = $aRow->service_name;
             $row[] = $cust_details;
@@ -2236,7 +2236,7 @@ class TicketingController extends Controller {
             return redirect()->back();
         }
         // echo "<pre>";print_r($request->all());exit;
-        
+
         $TicketData = Ticket::find($request->service_name_id);
         $total_guests = $request->total_adults;
 
@@ -2290,7 +2290,7 @@ class TicketingController extends Controller {
         $vendor_name = $vendorData->company;
         $start_date = date("Y-m-d", strtotime($request->start_date));
         $end_date = null;
-        
+
         $lastIdData = OrderMaster::orderBy('id', 'desc')->first();
         $lastId = !empty($lastIdData) ? $lastIdData->id + 1 : 1;
         $booking_id = 'OT-' . time() . '-' . $vendor_id . '-' . $lastId;
@@ -2301,7 +2301,7 @@ class TicketingController extends Controller {
         $payment_method = 'cash';
         $admin_amount = $vendor_amount = 0;
         $order_type = 'offline';
-        
+
         $order_master = new OrderMaster([
             'order_id' => $booking_id,
             'invoice_id' => $invoice_id,
@@ -2331,7 +2331,7 @@ class TicketingController extends Controller {
             'total_child' => 0,
             'total_guests' => $total_guests,
             'adult_price' => $TicketData->adult_price,
-            'child_price' => $TicketData->child_price, 
+            'child_price' => $TicketData->child_price,
             // 'rental_breakdown' => json_encode($price_break),
             'total_service_price' => $request->total_service_price,
             'sub_total_price' => $request->sub_total_price,
@@ -2354,7 +2354,7 @@ class TicketingController extends Controller {
         if ($order_master->save()) {
             $OrderMasterId = $order_master->id;
             $OrderMaster = $OrderMasterNew = OrderMaster::find($OrderMasterId);
-            
+
             if($request->payment_gateway == 'cash' || $request->payment_gateway == 'cheque') {
                 // Generate Qr Code
                 require_once public_path('QrCode/generateQrCode.php');
@@ -2392,9 +2392,9 @@ class TicketingController extends Controller {
                 $childData = '<tr style="font-size:14px;"><td colspan="3" align="center" valign="top" style="color:#000;border-right:1px solid #000;border-bottom:1px solid #000;"></td><td align="center" valign="top" style="color:#000;border-right:1px solid #000;border-bottom:1px solid #000;">'. $OrderMaster->total_child .' Child</td><td align="center" valign="top" style="color:#000;border-right:1px solid #000;border-bottom:1px solid #000;">'. number_format($OrderMaster->child_price, 2) .'</td><td align="right" valign="top" style="color:#000;border-right:1px solid #000;border-bottom:1px solid #000;">'. number_format($OrderMaster->total_child * $OrderMaster->child_price, 2) .'</td></tr>';
             }
             $extraService = $extraPrice = '';
-            
+
             $childData .= $extraPrice;
-            $Message = str_replace(array("~otdcLogo~", "~username~", "~usermobile~", "~usermail~", "~useraddress~", "~usergstno~", "~usergstcompany~", "~vendorgst~", "~vendorgstcompany~", "~vendorLogo~", "~orderdate~", "~invoiceid~", "~servicename~", "~checkdate~", "~totaladult~", "~adultprice~", "~totaladultprice~", "~childdata~", "~totalserviceprice~", "~couponname~", "~couponamount~", "~subtotal~", "~gst~", "~ordertotal~", "~paymentmethod~", "~txnid~"), 
+            $Message = str_replace(array("~otdcLogo~", "~username~", "~usermobile~", "~usermail~", "~useraddress~", "~usergstno~", "~usergstcompany~", "~vendorgst~", "~vendorgstcompany~", "~vendorLogo~", "~orderdate~", "~invoiceid~", "~servicename~", "~checkdate~", "~totaladult~", "~adultprice~", "~totaladultprice~", "~childdata~", "~totalserviceprice~", "~couponname~", "~couponamount~", "~subtotal~", "~gst~", "~ordertotal~", "~paymentmethod~", "~txnid~"),
                     array($this->site, $OrderMaster->customer_name, $OrderMaster->customer_phone, $OrderMaster->customer_email, $OrderMaster->customer_address1, $customerGSTNo, $customerGSTCompany, $vendorGSTNo, $vendorRegdCompany, $this->site . $vendorData->photo, date("d M Y h:i a", strtotime($OrderMaster->created_at)), $OrderMaster->invoice_id, $OrderMaster->service_name, $check_date .'<br>'. $duration, $OrderMaster->total_adults, number_format($OrderMaster->adult_price, 2), number_format($OrderMaster->total_adults * $OrderMaster->adult_price, 2), $childData, number_format($OrderMaster->total_service_price, 2), $OrderMaster->coupon_name, number_format($OrderMaster->coupon_amount, 2), number_format($OrderMaster->sub_total_price, 2), number_format($OrderMaster->tax_amount, 2), number_format($OrderMaster->total_order_price, 2), $OrderMaster->payment_method, $OrderMaster->transaction_id), $TicketInvoice->source);
             if ($OrderMaster->vendor_id == 268 || $OrderMaster->vendor_id == 6048) { // 268  ,  6048
                 $Message = str_replace($OrderMaster->total_adults .' Adult', $OrderMaster->total_adults, $Message);
@@ -2403,9 +2403,9 @@ class TicketingController extends Controller {
             $OrderMaster->invoice = $Message;
 
             $User = User::find($OrderMaster->customer_id);
-            
+
             if ($OrderMaster->vendor_id == 268 || $OrderMaster->vendor_id == 6048) { // 268  ,  6048
-                
+
                 $ConfirmTemplate = EmailTemplate::where('ref_code','offlinespecialticketConfirmMail')->first();
                 if (!empty($ConfirmTemplate)) {
                     $check_date = '['. date("h:i a", strtotime($OrderMaster->start_time)) .' - '. date("h:i a", strtotime($OrderMaster->end_time)) .'] | '. date("d M Y", strtotime($OrderMaster->start_date));
@@ -2413,7 +2413,7 @@ class TicketingController extends Controller {
 
                     $TicketCategory = str_replace("Rourkela City Festival", "", trim($OrderMaster->service_name));
                     $TicketCategory = str_replace("(", "", trim($TicketCategory));
-                    $TicketCategory = str_replace(")", "", trim($TicketCategory));                                            
+                    $TicketCategory = str_replace(")", "", trim($TicketCategory));
                     $ticketbg = '';
                     if(trim($TicketCategory) == 'GOLD'){
                         // $ticketbg = 'https://rklcityfest.bookodisha.com/voucher/gold.jpg';
@@ -2425,9 +2425,9 @@ class TicketingController extends Controller {
                         // $ticketbg = 'https://rklcityfest.bookodisha.com/voucher/platinum.jpg';
                         $TicketCategoryName = '<span style="color:#000;">'.$TicketCategory.'</span>';
                     }
-                    $msg = str_replace(array("~bookingqrCode~", "~gateno~", "~servicename~", "~invoiceid~", "~adult~", "~checkdate~", "~ticketbg~"), 
+                    $msg = str_replace(array("~bookingqrCode~", "~gateno~", "~servicename~", "~invoiceid~", "~adult~", "~checkdate~", "~ticketbg~"),
                             array($OrderMaster->qr_base64, $TicketData->gate_no, $TicketCategoryName, $OrderMaster->invoice_id, $OrderMaster->total_adults, $check_date, $ticketbg), $ConfirmTemplate->source);
-                    // $msg = str_replace(array("~bookingqrCode~", "~gateno~", "~servicename~", "~invoiceid~", "~adult~", "~checkdate~"), 
+                    // $msg = str_replace(array("~bookingqrCode~", "~gateno~", "~servicename~", "~invoiceid~", "~adult~", "~checkdate~"),
                     //         array($OrderMaster->qr_base64, $TicketData->gate_no, $OrderMaster->service_name, $OrderMaster->invoice_id, $OrderMaster->total_adults, $check_date), $ConfirmTemplate->source);
 
                     $OrderMaster->confimation_voucher = $msg;
@@ -2440,7 +2440,7 @@ class TicketingController extends Controller {
 
             $OrderMaster->save();
             // $Message .= '<div style="margin-top:30px;text-align:center;"><p style="font-family: Segoe UI;color:#333;">Feel free to <a href="https://www.bookodisha.com/tourism/contact">contact us</a> for any further questions or clarifications</p><p style="font-family: Segoe UI;color:#333;"><b>bookodisha.com support team</b></p><p style="font-family: Segoe UI;font-size:11px;color:#999;margin: 0px !important; ">Please do not reply to this message. This email address is automated for delivering outbound messages.<br> Please check the web site for more information&nbsp;<a href="https://www.bookodisha.com/" target="_blank">www.bookodisha.com</a> <br>Copyright &copy; 2022 Odisha Tourism. All rights reserved. <br /> <span style="font-size:16px;"> Powered by&nbsp;&nbsp;&copy;2022-2023&nbsp;<b>Privacy Policy</b><b>&nbsp;</b><b>|&nbsp;</b><b>Odisha Tourism Support</b></span></p><p>&nbsp;</p></div>';
-            
+
             // $admin = User::where('role', 1)->first();
             // $receipent = [$vendorData->email];
             // if (!empty($service_mail)) {
