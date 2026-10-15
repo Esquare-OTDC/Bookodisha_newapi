@@ -9668,7 +9668,7 @@ class UserController extends Controller
 
                     $valueSerialized = @unserialize($o);
                     $verify_response = json_decode($o, true);
-                    // print_r($verify_response);exit;
+                    // print_r($o);exit;
                     if ($verify_response['status'] == 1 && isset($verify_response['transaction_details'][$OrderMaster->transaction_id])) {
                         $check_response = $verify_response['transaction_details'][$OrderMaster->transaction_id];
                         if ($check_response['status'] == 'success') {
