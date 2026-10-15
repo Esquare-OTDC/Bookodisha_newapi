@@ -31,7 +31,7 @@ class Controller extends BaseController
             '35' => '2023-06-20',
             '36' => '2023-06-20',
         );
-        return $maxDates[$service_id];
+        return $maxDates[$service_id] ?? '';
     }
 
     public function serviceCategory() {
