@@ -966,7 +966,7 @@ class CarBookingController extends Controller
                 $CarId = $Car->id;
                 $date = date("Y-m-d");
                 $inventory = array();
-                for ($i = 0; $i < 120; $i++) {
+                for ($i = 0; $i < 30; $i++) {
                     $date1 = date("Y-m-d", strtotime($date . ' + ' . $i . ' days'));
                     $inventory[$i] = [
                         'vendor_id' => $Car->vendor_id,
