@@ -75,7 +75,7 @@ class ExternalApiController extends Controller
             $query->whereIn('o.status', ['completed', 'cancelled']);
         }
 
-        if($request->filled('fetch_from')) {
+        if ($request->filled('fetch_from')) {
             $query->where('o.created_at', '>=', $request->fetch_from);
         }
 
@@ -180,13 +180,16 @@ class ExternalApiController extends Controller
             'o.end_time',
             'o.adult_price',
             'o.child_price',
+            'o.customer_name as customer_name',
+            'o.customer_email as customer_email',
+            'o.customer_phone as customer_phone',
             'tb.extra_services',
             'o.rental_breakdown as price_breakup',
             'o.service_charge',
             'o.total_order_price as totalPrice',
             'tb.user_type',
             'o.updated_at',
-             DB::raw('
+            DB::raw('
                 CASE
                     WHEN TIMESTAMPDIFF(MINUTE,o.created_at, o.updated_at) = 0 THEN "Not modified"
                     WHEN TIMESTAMPDIFF(MINUTE,o.created_at, o.updated_at) < 60 THEN CONCAT(TIMESTAMPDIFF(MINUTE,o.created_at, o.updated_at), " minutes ago")
@@ -321,10 +324,10 @@ class ExternalApiController extends Controller
                 $endDate . ' 23:59:59',
             ]);
         }
-         /*
+        /*
         * Fetch Form Record
         */
-        if($request->filled('fetch_from')) {
+        if ($request->filled('fetch_from')) {
             $query->where('o.created_at', '>=', $request->fetch_from);
         }
 
@@ -392,6 +395,9 @@ class ExternalApiController extends Controller
             'o.end_date',
             'o.adult_price',
             'o.child_price',
+            'o.customer_name as customer_name',
+            'o.customer_email as customer_email',
+            'o.customer_phone as customer_phone',
             'o.rental_breakdown as price_breakup',
             'o.service_charge',
             'o.total_order_price as totalPrice',
@@ -531,7 +537,7 @@ class ExternalApiController extends Controller
             ]);
         }
 
-        if($request->filled('fetch_from')) {
+        if ($request->filled('fetch_from')) {
             $query->where('o.created_at', '>=', $request->fetch_from);
         }
 
@@ -597,6 +603,9 @@ class ExternalApiController extends Controller
             'o.total_rooms',
             'o.start_date',
             'o.end_date',
+            'o.customer_name as customer_name',
+            'o.customer_email as customer_email',
+            'o.customer_phone as customer_phone',
             'o.total_adults as adult_count',
             'o.total_child as children_count',
             'tb.extra_person_price',
