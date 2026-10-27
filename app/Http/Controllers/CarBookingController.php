@@ -2608,7 +2608,7 @@ class CarBookingController extends Controller
             $inventory = array();
             $ExistingInventory = RentalMasterInventory::where('car_id', $value->id)->where('date', '>=', $today)->pluck('car_id', 'date')->toArray();
             //for ($i = 0; $i <= 120; $i++) {
-            for ($i = 0; $i <= 90; $i++) {
+            for ($i = 0; $i <= 30; $i++) {
                 $date = date("Y-m-d", strtotime($today . ' + ' . $i . ' days'));
 
                 if (!array_key_exists($date, $ExistingInventory)) {

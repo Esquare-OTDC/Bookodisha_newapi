@@ -3183,9 +3183,9 @@ class ApiController extends Controller {
                     . "Phone: ". $request->userPhone ."<br>"
                     . "Meaasge: <br><p>". $request->userNote ."</p>";
             $admin = User::where('role', 1)->first();
-            Mail::to($request->vendorMail)->bcc($admin->email)->send(new \App\Mail\RegistrationMailUser($Message, $Subject));
+            //Mail::to($request->vendorMail)->bcc($admin->email)->send(new \App\Mail\RegistrationMailUser($Message, $Subject));
             $Message2 = "Your enquiry submitted successfully. We will contact you soon.";
-            Mail::to($request->userMail)->bcc($admin->email)->send(new \App\Mail\RegistrationMailUser($Message2, $Subject));
+            //Mail::to($request->userMail)->bcc($admin->email)->send(new \App\Mail\RegistrationMailUser($Message2, $Subject));
 
             $responce['status'] = 1;
             $responce['message'] = 'E-mail sent successfully.';
