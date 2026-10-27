@@ -182,7 +182,23 @@
                                 </div>
                             </div>
                         </div>
-                        <!--  -->
+                        @if (Auth::user()->role == 2)
+                        <div class="white-box">
+                            <h3 class="box-title">Assign Sub user</h3><hr>
+                            <div class="row">
+                                <div class="form-group col-md-12">
+                                    <select id="subUser" name="sub_user[]" class="form-control" multiple="multiple">
+                                        @foreach ($SubUser as $val)
+                                        <option value="{{ $val['id'] }}" {{ ($val['checked'] == 1) ? 'selected' : '' }}>{{ $val['name'] }}</option>
+                                        @endforeach
+                                    </select>
+                                    @if ($errors->has('sub_user'))
+                                    <span class="text-danger">{{ $errors->first('sub_user') }}</span>
+                                    @endif
+                                </div>
+                            </div>                            
+                        </div>
+                        @endif
                     </div>
                     <div class="col-md-3">
                         <div class="white-box">
@@ -197,7 +213,7 @@
                                     <label for="radio2">Draft</label>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-primary" style="float: right;margin-top: -20px;">Submit</button>
+                            <button type="submit" class="btn btn-primary" style="float: right;margin-top: -20px;">Update</button>
                         </div>
                         <?php if (Auth::user()->access_type == 'superadmin') { ?>
                             <!-- <div class="white-box">

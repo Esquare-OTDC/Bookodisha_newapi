@@ -196,6 +196,24 @@
                                 </div>
                             </div>
                         </div>
+                        @if (Auth::user()->role == 2)
+                        <div class="white-box">
+                            <h3 class="box-title">Assign Sub user</h3><hr>
+                            <div class="row">
+                                <div class="form-group col-md-12">
+                                    <!--<label>Choose Sub user</label>-->
+                                    <select id="subUser" name="sub_user[]" class="form-control" multiple="multiple">
+                                        @foreach ($SubUser as $key => $val)
+                                        <option value="{{ $key }}">{{ $val }}</option>
+                                        @endforeach
+                                    </select>
+                                    @if ($errors->has('sub_user'))
+                                    <span class="text-danger">{{ $errors->first('sub_user') }}</span>
+                                    @endif
+                                </div>
+                            </div>                            
+                        </div>
+                        @endif
                     </div>
 
                     <div class="col-md-3">

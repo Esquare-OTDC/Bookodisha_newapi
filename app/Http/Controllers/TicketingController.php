@@ -1291,7 +1291,7 @@ class TicketingController extends Controller {
             $Ticketing->hdfc_mid = $request->hdfc_mid;
             $Ticketing->book_start_date = (!empty($request->book_start_date)) ? date("Y-m-d", strtotime($request->book_start_date)) : '';
             $Ticketing->book_end_time = date("h:i a", strtotime($request->book_end_time));
-            $Ticketing->days_from_start_date = (!empty($request->days_from_start_date)) ? $request->days_from_start_date : 1;
+            $Ticketing->days_from_start_date = (!empty($request->days_from_start_date)) ? $request->days_from_start_date : 0;
 
             $add_email = $arr = explode(",", $request->additional_email);
             $add_email = array_filter($add_email, function ($n) { return !empty(trim($n)); });

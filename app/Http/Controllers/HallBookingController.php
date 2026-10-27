@@ -70,11 +70,7 @@ class HallBookingController extends Controller
             Session::flash('success', 'You are not autherised to view this page.');
             return redirect()->back();
         }
-
-        $Vendors = User::where('role', '2')
-            ->orderBy('company', 'asc')
-            ->pluck('company', 'id');
-
+        $Vendors = User::where('role', '2')->orderBy('company', 'asc')->pluck('company', 'id');
         return view('hall.all-hall', compact('Vendors'));
     }
 
@@ -132,18 +128,30 @@ class HallBookingController extends Controller
                 $staff_condition = ' AND id IN (' . implode(',', $SubuserAccess) . ')';
             }
         }
+        $sWhere = " WHERE id != '' AND is_deleted = 0 ";
+
+
 
         $sWhere = " WHERE id != '' AND is_deleted = 0 " . $staff_condition;
 
-        if (Auth::user()->access_type != 'superadmin') {
-            if (Auth::user()->role == 3 && !empty(Auth::user()->vendor_id)) {
-                $createdBy = Auth::user()->vendor_id;
-            } else {
-                $createdBy = Auth::user()->id;
-            }
+        $user = Auth::user();
+        if ($user->access_type != 'superadmin') {
+            $vendorId = ($user->role == 3 && !empty($user->vendor_id))
+                ? $user->vendor_id
+                : $user->id;
 
-            $sWhere .= " AND created_by = " . intval($createdBy);
+            $sWhere .= " AND vender_id = " . intval($vendorId);
         }
+
+        // if (Auth::user()->access_type != 'superadmin') {
+        //     if (Auth::user()->role == 3 && !empty(Auth::user()->vendor_id)) {
+        //         $createdBy = Auth::user()->vendor_id;
+        //     } else {
+        //         $createdBy = Auth::user()->id;
+        //     }
+
+        //     $sWhere .= " AND vender_id = " . intval($createdBy);
+        // }
 
         $searchColumns = array('property_name', 'place');
 
@@ -2907,19 +2915,14 @@ class HallBookingController extends Controller
         ]);
 
         if ($validate->fails()) {
-            return Redirect::back()
-                ->withErrors($validate)
-                ->withInput();
+            return Redirect::back()->withErrors($validate)->withInput();
         }
 
         $uploadDir = public_path('images/hall-room');
-
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0777, true);
         }
-
         DB::beginTransaction();
-
         try {
             $featureImage = '';
 
@@ -2948,9 +2951,7 @@ class HallBookingController extends Controller
                 'slug' => Str::slug($request->title) . '-' . uniqid(),
                 'hcategory_id' => $request->hall_type,
                 'property_id' => $request->property_id,
-                'hfacilities_id' => $request->filled('facilities')
-                    ? implode(',', $request->facilities)
-                    : null,
+                'hfacilities_id' => $request->filled('facilities') ? implode(',', $request->facilities) : null,
                 'room_capacity' => $request->hall_capacity,
                 'quantity' => 1,
                 'feature_image' => $featureImage,
@@ -3001,10 +3002,7 @@ class HallBookingController extends Controller
             $this->setHallId($hallRoom->id);
             $this->setPropertyId($request->property_id);
 
-            $isInventoryCreated = $this->addInventoryNext90Days(
-                1,
-                new HallMasterInventory()
-            );
+            $isInventoryCreated = $this->addInventoryNext90Days(1,new HallMasterInventory());
 
             if (!$isInventoryCreated) {
                 DB::rollBack();
@@ -3013,20 +3011,12 @@ class HallBookingController extends Controller
             }
 
             DB::commit();
-
             Session::flash('success', 'Hall room added successfully.');
-
-            return Redirect::to(
-                'manage-hall-rooms/' . Crypt::encryptString($request->property_id)
-            );
+            return Redirect::to('manage-hall-rooms/' . Crypt::encryptString($request->property_id));
+            
         } catch (\Exception $e) {
             DB::rollBack();
-
-            Session::flash(
-                'error',
-                'An error occurred while adding hall room: ' . $e->getMessage()
-            );
-
+            Session::flash('error','An error occurred while adding hall room: ' . $e->getMessage());
             return redirect()->back();
         }
     }
@@ -3157,15 +3147,7 @@ class HallBookingController extends Controller
                 mkdir($uploadDir, 0777, true);
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Feature Image
-            |--------------------------------------------------------------------------
-            */
-
             $featureImage = $hallRoom->feature_image;
-
-            // User removed existing image and did not upload a new one
             if ($request->feature_removed == '1' && !$request->hasFile('image')) {
                 if (!empty($featureImage) && file_exists(public_path($featureImage))) {
                     @unlink(public_path($featureImage));
@@ -3174,7 +3156,6 @@ class HallBookingController extends Controller
                 $featureImage = null;
             }
 
-            // User uploaded a new feature image
             if ($request->hasFile('image')) {
                 if (
                     !empty($hallRoom->feature_image) &&
@@ -3190,22 +3171,13 @@ class HallBookingController extends Controller
                 $featureImage = 'images/hall-room/' . $fileName;
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Gallery Images
-            |--------------------------------------------------------------------------
-            */
-
             $galleryImages = [];
-
-            // Keep preloaded images
             if ($request->filled('old')) {
                 foreach ($request->old as $image) {
                     $galleryImages[] = 'images/hall-room/' . $image;
                 }
             }
 
-            // Upload new gallery images
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $file) {
                     $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
@@ -3215,7 +3187,6 @@ class HallBookingController extends Controller
                 }
             }
 
-            // Delete removed images
             $oldGallery = json_decode($hallRoom->gallery, true);
 
             if (!is_array($oldGallery)) {
@@ -3231,12 +3202,6 @@ class HallBookingController extends Controller
                     }
                 }
             }
-
-            /*
-            |--------------------------------------------------------------------------
-            | Update Hall
-            |--------------------------------------------------------------------------
-            */
 
             $slug = Str::slug($request->title) . '-' . uniqid();
             $publishStatus = ($request->status == 'publish') ? 'PUBLISH' : 'DRAFT';
@@ -3261,12 +3226,6 @@ class HallBookingController extends Controller
                     'updated_at' => now(),
                 ]);
 
-            /*
-            |--------------------------------------------------------------------------
-            | Update FULL DAY Slot
-            |--------------------------------------------------------------------------
-            */
-
             if ($request->filled('full_day_price')) {
                 DB::table('m_slot')
                     ->where('hall_id', $roomId)
@@ -3278,12 +3237,6 @@ class HallBookingController extends Controller
                         'updated_at' => now(),
                     ]);
             }
-
-            /*
-            |--------------------------------------------------------------------------
-            | Update HALF DAY Slot
-            |--------------------------------------------------------------------------
-            */
 
             if ($request->filled('half_day_price')) {
                 DB::table('m_slot')
@@ -3354,10 +3307,17 @@ class HallBookingController extends Controller
             ->orderBy('name', 'asc')
             ->get();
 
-        return view(
-            'hall.add-new-hall',
-            compact('Vendors', 'HallAttributes', 'Districts')
-        );
+        $SubUser = array();
+        if (Auth::user()->role == 2) {
+            $SubUserData = User::where('vendor_id', Auth::user()->id)->Where('access_type', '<>', 'agent')->orderBy('first_name', 'asc')->get();
+            if (!empty($SubUserData)) {
+                foreach ($SubUserData as $value) {
+                    $SubUser[$value->id] = $value->first_name . ' ' . $value->last_name;
+                }
+            }
+        }
+
+        return view('hall.add-new-hall',compact('Vendors', 'HallAttributes', 'Districts','SubUser'));
     }
 
     /* *********************************************************************************************************************
@@ -3430,7 +3390,7 @@ class HallBookingController extends Controller
         $publishStatus = ($request->status == 'publish') ? 'PUBLISH' : 'DRAFT';
         $status = ($request->status == 'publish') ? '1' : '0';
 
-        HallProperty::create([
+        $Hall = HallProperty::create([
             'property_name' => $request->name,
             'vender_id' => '1',
             'slug' => $slug,
@@ -3463,9 +3423,28 @@ class HallBookingController extends Controller
             'is_deleted' => 0,
         ]);
 
-        Session::flash('success', 'Property added successfully.');
+        if ($Hall->save()) {
+            $HallId= $Hall->id;
+            if (Auth::user()->role == 2) {
+                if (!empty($request->sub_user)) {
+                    $userAccess = array();
+                    foreach ($request->sub_user as $value) {
+                        $userAccess[] = array(
+                            'user_id' => $value,
+                            'service' => 'hall',
+                            'service_id' => $HallId
+                        );
+                    }
+                    DB::table('subuser_access')->insertOrIgnore($userAccess);
+                }
+            }
 
-        return Redirect::to('all-hall');
+            Session::flash('success', 'Property added successfully.');
+            return Redirect::to('all-hall');
+        } else {
+            Session::flash('success', 'Unable to add Hotel');
+            return Redirect::to('hotel-add');
+        }
     }
 
     /**
@@ -3489,31 +3468,14 @@ class HallBookingController extends Controller
         }
 
         $HallDetails = HallProperty::find($id);
-
         if (!$HallDetails) {
             Session::flash('success', 'Hall not found.');
             return redirect()->back();
         }
 
-        $HallDetails->feature_image = !empty($HallDetails->feature_image)
-            ? asset($HallDetails->feature_image)
-            : '';
+        $HallDetails->feature_image = !empty($HallDetails->feature_image) ? asset($HallDetails->feature_image) : '';
 
-        /*
-        |--------------------------------------------------------------------------
-        | Banner Image
-        |--------------------------------------------------------------------------
-        */
-
-        $HallDetails->banner_image = !empty($HallDetails->banner_image)
-            ? asset($HallDetails->banner_image)
-            : '';
-
-        /*
-        |--------------------------------------------------------------------------
-        | Gallery Images
-        |--------------------------------------------------------------------------
-        */
+        $HallDetails->banner_image = !empty($HallDetails->banner_image) ? asset($HallDetails->banner_image) : '';
 
         $gallery = [];
 
@@ -3531,13 +3493,6 @@ class HallBookingController extends Controller
         }
 
         $gallery = json_encode($gallery);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Vendors
-        |--------------------------------------------------------------------------
-        */
-
         $Vendors = User::where('role', 2)
             ->orderBy('company', 'ASC')
             ->pluck('company', 'id');
@@ -3546,10 +3501,23 @@ class HallBookingController extends Controller
             ->orderBy('name', 'asc')
             ->get();
 
-        return view(
-            'hall.edit-hall',
-            compact('HallDetails', 'Districts', 'Vendors', 'gallery')
-        );
+        
+        $SubUser = array();
+        if (Auth::user()->role == 2) {
+            $SubUserData = User::where('vendor_id', Auth::user()->id)->Where('access_type', '<>', 'agent')->orderBy('first_name', 'asc')->get();
+            if (!empty($SubUserData)) {
+                foreach ($SubUserData as $value) {
+                    $checked = 0;
+                    $SubuserAccess = SubuserAccess::where(['user_id' => $value->id, 'service' => 'hall', 'service_id' => $id])->first();
+                    if (!empty($SubuserAccess)) {
+                        $checked = 1;
+                    }
+                    $SubUser[] = array('id' => $value->id, 'name' => $value->first_name . ' ' . $value->last_name, 'checked' => $checked);
+                }
+            }
+        }
+
+        return view('hall.edit-hall',compact('HallDetails', 'Districts', 'Vendors', 'gallery','SubUser'));
     }
 
     /**
@@ -3587,12 +3555,6 @@ class HallBookingController extends Controller
             'feature_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Basic Information
-        |--------------------------------------------------------------------------
-        */
-
         $hall->property_name = $request->name;
         $hall->content = $request->content;
         $hall->youtube_video = $request->video;
@@ -3602,21 +3564,9 @@ class HallBookingController extends Controller
         $slug = Str::slug($request->name) . '-' . uniqid();
         $hall->slug = $slug;
 
-        /*
-        |--------------------------------------------------------------------------
-        | Location
-        |--------------------------------------------------------------------------
-        */
-
         $hall->district_id = $request->district_id;
         $hall->place = $request->place;
         $hall->address = $request->address;
-
-        /*
-        |--------------------------------------------------------------------------
-        | Contact Information
-        |--------------------------------------------------------------------------
-        */
 
         $hall->contact_email = $request->contact_email;
         $hall->manager_name = $request->manager_name;
@@ -3626,22 +3576,12 @@ class HallBookingController extends Controller
         $hall->additional_contact = $request->additional_phone;
         $hall->hotel_address = $request->real_address;
 
-        /*
-        |--------------------------------------------------------------------------
-        | GST
-        |--------------------------------------------------------------------------
-        */
 
         $hall->gst_applicable = $request->gst_applicable;
         // $hall->gst_applicable = $request->show_price ?? 0;
         $hall->gst_number = $request->gst_number;
         $hall->company_name = $request->gst_legal_name;
 
-        /*
-        |--------------------------------------------------------------------------
-        | Publish Status
-        |--------------------------------------------------------------------------
-        */
 
         $status = strtoupper($request->publish_status ?? '');
 
@@ -3659,12 +3599,6 @@ class HallBookingController extends Controller
             mkdir($uploadDir, 0777, true);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Feature Image
-        |--------------------------------------------------------------------------
-        */
-
         if ($request->hasFile('feature_image')) {
             if (
                 !empty($hall->feature_image) &&
@@ -3680,11 +3614,6 @@ class HallBookingController extends Controller
             $hall->feature_image = 'images/hall/' . $filename;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Banner Image
-        |--------------------------------------------------------------------------
-        */
 
         if ($request->hasFile('banner_image')) {
             if (
@@ -3701,11 +3630,6 @@ class HallBookingController extends Controller
             $hall->banner_image = 'images/hall/' . $filename;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Gallery
-        |--------------------------------------------------------------------------
-        */
 
         $existingGallery = json_decode($hall->gallery, true) ?? [];
         $updatedGallery = [];
@@ -3742,36 +3666,61 @@ class HallBookingController extends Controller
 
         $hall->gallery = json_encode(array_values($updatedGallery));
 
-        /*
-        |--------------------------------------------------------------------------
-        | Save
-        |--------------------------------------------------------------------------
-        */
 
-        $hall->save();
+        if ($hall->save()) {
+            if (Auth::user()->role == 2) {
+                DB::table('subuser_access')->where(['service' => 'hall', 'service_id' => $hall->id])->delete();
+                if (!empty($request->sub_user)) {
+                    $userAccess = array();
+                    foreach ($request->sub_user as $value) {
+                        $userAccess[] = array(
+                            'user_id' => $value,
+                            'service' => 'hall',
+                            'service_id' => $hall->id
+                        );
+                    }
+                    DB::table('subuser_access')->insertOrIgnore($userAccess);
+                }
+            }
 
-        Session::flash('success', 'Property updated successfully');
-
-        return Redirect::to('all-hall');
+            Session::flash('success', 'Property updated successfully');
+            return Redirect::to('all-hall');
+            dd($hall);
+        } else {
+            Session::flash('success', 'Unable to update Hall details!');
+            return Redirect::to('hall-edit/' . $request->id);
+        }
+        
     }
 
     public function hallRoomBlockData()
     {
-        $hallQuery = Hall::query();
+        $user = Auth::user();
+        $hallQuery = Hall::query()
+            ->where('m_hall.is_deleted', 0)
+            ->where('m_hall.status', '1')
+            ->whereNotNull('m_hall.property_id')
+            ->join('m_property', 'm_property.id', '=', 'm_hall.property_id')
+            ->where('m_property.is_deleted', 0)
+            ->where('m_property.status', '1');
 
-        if (Auth::user()->access_type == 'vendor') {
-            $vendorId = (Auth::user()->role == 2)
-                ? Auth::user()->id
-                : Auth::user()->vendor_id;
+        if ($user->access_type != 'superadmin') {
+            $vendorId = ($user->role == 2) ? $user->id : (!empty($user->vendor_id) ? $user->vendor_id : $user->id);
+            $hallQuery->where('m_property.vender_id', $vendorId);
+        }
 
-            $hallQuery->where('created_by', $vendorId);
+        if ($user->role == 3) {
+            $subuserPropertyIds = SubuserAccess::where([
+                'user_id' => $user->id,
+                'service' => 'hall',
+            ])->pluck('service_id')->unique()->toArray();
+
+            $hallQuery->whereIn('m_hall.property_id', $subuserPropertyIds);
         }
 
         $HallList = $hallQuery
-            ->where('is_deleted', 0)
-            ->where('status', '1')
-            ->whereNotNull('property_id')
-            ->select('id', 'hall_name', 'property_id', 'created_by')
+            ->select('m_hall.id','m_hall.hall_name','m_hall.property_id','m_hall.created_by')
+            ->orderBy('m_hall.hall_name', 'asc')
             ->get();
 
         $propertyIds = $HallList
@@ -3783,28 +3732,34 @@ class HallBookingController extends Controller
         $MasterProperty = HallProperty::where('is_deleted', 0)
             ->where('status', '1')
             ->whereIn('id', $propertyIds)
+            ->orderBy('property_name', 'asc')
             ->pluck('property_name', 'id');
 
-        return view(
-            'hall.hall-room-block-data',
-            compact('MasterProperty', 'HallList')
-        );
+        return view('hall.hall-room-block-data',compact('MasterProperty', 'HallList'));
     }
 
-
+    
     public function getHallBlockData(Request $request)
     {
+        $user = Auth::user();
         $query = BlockedHallInventory::with('hall');
 
-        if (Auth::user()->access_type == 'vendor') {
-            $createdBy = (Auth::user()->role == 2)
-                ? Auth::user()->id
-                : Auth::user()->vendor_id;
+        if ($user->access_type != 'superadmin') {
+            $vendorId = ($user->role == 2) ? $user->id : (!empty($user->vendor_id) ? $user->vendor_id : $user->id);
 
-            $propertyIds = HallProperty::where('created_by', $createdBy)
-                ->where('is_deleted', 0)
-                ->pluck('id')
-                ->toArray();
+            $propertyQuery = HallProperty::where('is_deleted', 0)
+                ->where('vender_id', $vendorId);
+
+            if ($user->role == 3) {
+                $subuserPropertyIds = SubuserAccess::where([
+                    'user_id' => $user->id,
+                    'service' => 'hall',
+                ])->pluck('service_id')->unique()->toArray();
+
+                $propertyQuery->whereIn('id', $subuserPropertyIds);
+            }
+
+            $propertyIds = $propertyQuery->pluck('id')->toArray();
 
             $query->whereIn('property_id', $propertyIds);
         }
@@ -3821,20 +3776,16 @@ class HallBookingController extends Controller
             $dates = explode(' - ', $request->searchValue3);
 
             if (count($dates) == 2) {
-                $fromDate = Carbon::createFromFormat(
-                    'd-m-Y',
-                    trim($dates[0])
-                )->format('Y-m-d');
-
-                $toDate = Carbon::createFromFormat(
-                    'd-m-Y',
-                    trim($dates[1])
-                )->format('Y-m-d');
-
-                $query->whereBetween('block_date', [$fromDate, $toDate]);
+                try {
+                    $fromDate = Carbon::createFromFormat('d-m-Y',trim($dates[0]))->format('Y-m-d');
+                    $toDate = Carbon::createFromFormat('d-m-Y',trim($dates[1]))->format('Y-m-d');
+                    $query->whereBetween('block_date', [$fromDate,$toDate]);
+                } catch (\Exception $e) {
+                }
             }
         }
 
+        // Global search
         if (!empty($request->search['value'])) {
             $searchValue = $request->search['value'];
 
@@ -3864,31 +3815,29 @@ class HallBookingController extends Controller
             });
         }
 
-        $recordsTotal = $query->count();
+        $recordsTotal = (clone $query)->count();
 
         $records = $query
             ->orderBy('id', 'desc')
-            ->skip($request->get('start', 0))
-            ->take($request->get('length', 10))
+            ->skip(max(0, (int) $request->get('start', 0)))
+            ->take(max(1, min(100, (int) $request->get('length', 10))))
             ->get();
 
         $data = [];
 
         foreach ($records as $row) {
-            $slotType = $this->getHallSlotTypeText($row->slot_type);
-
             $data[] = [
                 '<input type="checkbox" class="itemcheck" value="' . $row->id . '">',
                 $row->property_name,
                 optional($row->hall)->hall_name,
-                $slotType,
+                $this->getHallSlotTypeText($row->slot_type),
                 $row->block_reason,
                 date('d-M-Y', strtotime($row->block_date)),
             ];
         }
 
         return response()->json([
-            'draw' => intval($request->get('draw')),
+            'draw' => (int) $request->get('draw'),
             'recordsTotal' => $recordsTotal,
             'recordsFiltered' => $recordsTotal,
             'data' => $data,
@@ -3896,45 +3845,41 @@ class HallBookingController extends Controller
         ]);
     }
 
-    public function blockHallRoom()
-    {
+ 
+    public function blockHallRoom(){
+        $user = Auth::user();
         $propertyQuery = HallProperty::where('is_deleted', 0);
 
-        if (Auth::user()->access_type == 'vendor') {
-            $createdBy = (Auth::user()->role == 2)
-                ? Auth::user()->id
-                : Auth::user()->vendor_id;
-
-            $propertyQuery->where('created_by', $createdBy);
+        if ($user->access_type != 'superadmin') {
+            $vendorId = ($user->role == 2) ? $user->id : (!empty($user->vendor_id) ? $user->vendor_id : $user->id);
+            $propertyQuery->where('vender_id', $vendorId);
+        } 
+        if ($user->role == 3) {
+            $subuserPropertyIds = SubuserAccess::where([
+                'user_id' => $user->id,
+                'service' => 'hall',
+            ])->pluck('service_id')->unique()->toArray();
+            $propertyQuery->whereIn('id', $subuserPropertyIds);
         }
 
-        $propertyIds = $propertyQuery
-            ->pluck('id')
-            ->toArray();
+        $vender_id = ($user->role == 2) ? $user->id : $user->vendor_id;
+        $propertyIds = $propertyQuery->pluck('id')->toArray();
 
         $HallList = Hall::where('is_deleted', 0)
             ->where('status', '1')
             ->whereIn('property_id', $propertyIds)
             ->whereNotNull('property_id')
             ->whereNotNull('hcategory_id')
-            ->select(
-                'id',
-                'hall_name',
-                'property_id',
-                'hcategory_id',
-                'created_by'
-            )
+            ->select('id','hall_name','property_id','hcategory_id','created_by')
             ->orderBy('hall_name', 'asc')
             ->get();
 
-        $usedPropertyIds = $HallList
-            ->pluck('property_id')
+        $usedPropertyIds = $HallList->pluck('property_id')
             ->filter()
             ->unique()
             ->toArray();
 
-        $categoryIds = $HallList
-            ->pluck('hcategory_id')
+        $categoryIds = $HallList->pluck('hcategory_id')
             ->filter()
             ->unique()
             ->toArray();
@@ -3951,10 +3896,7 @@ class HallBookingController extends Controller
             ->orderBy('hcategory_name', 'asc')
             ->get();
 
-        return view(
-            'hall.block-hall-room',
-            compact('MasterProperty', 'HallList', 'CategoryList')
-        );
+        return view('hall.block-hall-room',compact('MasterProperty', 'HallList', 'CategoryList', 'vender_id'));
     }
 
 
@@ -4092,10 +4034,7 @@ class HallBookingController extends Controller
         $query = BlockedHallInventory::with('hall');
 
         if (Auth::user()->access_type == 'vendor') {
-            $vendorId = (Auth::user()->role == 2)
-                ? Auth::user()->id
-                : Auth::user()->vendor_id;
-
+            $vendorId = (Auth::user()->role == 2) ? Auth::user()->id : Auth::user()->vendor_id;
             $query->where('vendor_id', $vendorId);
         }
 
@@ -4175,25 +4114,37 @@ class HallBookingController extends Controller
 
         return '';
     }
-
-
-    public function propertyAvailability()
-    {
-        $hallQuery = Hall::query();
-
-        if (Auth::user()->access_type == 'vendor') {
-            $vendorId = (Auth::user()->role == 2)
-                ? Auth::user()->id
-                : Auth::user()->vendor_id;
-
-            $hallQuery->where('created_by', $vendorId);
-        }
-
-        $HallList = $hallQuery
+    
+    public function propertyAvailability(){
+        $user = Auth::user();
+        $hallQuery = Hall::query()
             ->where('is_deleted', 0)
             ->whereNotNull('property_id')
             ->whereNotNull('hcategory_id')
-            ->select('id', 'hall_name', 'property_id', 'hcategory_id', 'created_by')
+            ->whereHas('property', function ($query) {
+                $query->where('is_deleted', 0)
+                    ->where('status', '1');
+            });
+
+        if ($user->access_type != 'superadmin') {
+            $vendorId = ($user->role == 2) ? $user->id : (!empty($user->vendor_id) ? $user->vendor_id : $user->id);
+
+            $hallQuery->whereHas('property', function ($query) use ($vendorId) {
+                $query->where('vender_id', $vendorId);
+            });
+        }
+
+        if ($user->role == 3) {
+            $subuserPropertyIds = SubuserAccess::where([
+                'user_id' => $user->id,
+                'service' => 'hall',
+            ])->pluck('service_id')->unique()->toArray();
+
+            $hallQuery->whereIn('property_id', $subuserPropertyIds);
+        }
+
+        $HallList = $hallQuery
+            ->select('id','hall_name','property_id','hcategory_id','created_by')
             ->get();
 
         $propertyIds = $HallList
@@ -4211,46 +4162,66 @@ class HallBookingController extends Controller
         $MasterProperty = HallProperty::where('is_deleted', 0)
             ->where('status', '1')
             ->whereIn('id', $propertyIds)
+            ->orderBy('property_name', 'asc')
             ->pluck('property_name', 'id');
 
         $CategoryList = HallCategory::where('is_deleted', 0)
             ->whereIn('id', $categoryIds)
-            ->select('id', 'hcategory_name')
-            ->get();
+            ->whereIn('id', $categoryIds)
+            ->orderBy('hcategory_name', 'asc')
+            ->get(['id', 'hcategory_name']);
 
-        return view(
-            'hall.property-availability',
-            compact('MasterProperty', 'HallList', 'CategoryList')
-        );
+        return view('hall.property-availability',compact('MasterProperty', 'HallList', 'CategoryList'));
     }
+
+
 
 
     public function hallBookingReport(Request $request)
     {
-        if (!(parent::checkViewPrivilege(86))) {
-            Session::flash('success', 'You are not authorised to view this page.');
-            return redirect()->back();
+        $user = Auth::user();
+        $hallQuery = Hall::query()
+            ->where('is_deleted', 0)
+            ->whereNotNull('property_id')
+            ->whereNotNull('hcategory_id')
+            ->whereHas('property', function ($query) {
+                $query->where('is_deleted', 0)
+                    ->where('status', '1');
+            });
+
+        if ($user->access_type != 'superadmin') {
+            $vendorId = ($user->role == 2) ? $user->id : (!empty($user->vendor_id) ? $user->vendor_id : $user->id);
+
+            $hallQuery->whereHas('property', function ($query) use ($vendorId) {
+                $query->where('vender_id', $vendorId);
+            });
         }
 
-        // Property List
-        $MasterProperty = HallProperty::where('is_deleted', '0')
-            ->where('status', '1')
-            ->pluck('property_name', 'id')
+        if ($user->role == 3) {
+            $subuserPropertyIds = SubuserAccess::where([
+                'user_id' => $user->id,
+                'service' => 'hall',
+            ])->pluck('service_id')->unique()->toArray();
+
+            $hallQuery->whereIn('property_id', $subuserPropertyIds);
+        }
+
+        $propertyIds = $hallQuery
+            ->pluck('property_id')
+            ->filter()
+            ->unique()
             ->toArray();
 
+        $MasterProperty = HallProperty::where('is_deleted', 0)
+            ->where('status', '1')
+            ->whereIn('id', $propertyIds)
+            ->orderBy('property_name', 'asc')
+            ->pluck('property_name', 'id');
+
         // Default Filters
-        $property_id = $request->filled('property_id')
-            ? $request->property_id
-            : 0;
-
-        $report_type = $request->filled('report_type')
-            ? $request->report_type
-            : 'book_date';
-
-        $check_date = $request->filled('check_date')
-            ? $request->check_date
-            : Carbon::today()->format('d-m-Y');
-
+        $property_id = $request->filled('property_id') ? $request->property_id : 0;
+        $report_type = $request->filled('report_type') ? $request->report_type : 'book_date';
+        $check_date = $request->filled('check_date') ? $request->check_date : Carbon::today()->format('d-m-Y');
         $date = Carbon::createFromFormat('d-m-Y', $check_date)->format('Y-m-d');
 
         $query = DB::table('t_booking as tb')
@@ -4264,8 +4235,6 @@ class HallBookingController extends Controller
                 'om.customer_name',
                 'om.service_name',
                 'hc.hcategory_name as hall_type',
-
-                // Get slot directly from t_booking
                 'tb.slot_type',
                 'tb.totalPrice as total_amount',
                 'om.status',
@@ -4273,13 +4242,9 @@ class HallBookingController extends Controller
             )
             ->where('tb.is_deleted', '0')
             ->where('h.is_deleted', '0');
-
-        // Property Filter
         if ($property_id != 0) {
             $query->where('h.property_id', $property_id);
         }
-
-        // Date Filter
         if ($report_type == 'book_date') {
             $query->whereDate('tb.booking_date', $date);
         } else {
@@ -4293,15 +4258,7 @@ class HallBookingController extends Controller
         $MisHallData = [];
 
         foreach ($bookings as $row) {
-            /*
-             * FIRST_HALF  -> FIRST HALF
-             * SECOND_HALF -> SECOND HALF
-             * FULL_DAY -> FULL DAY
-             */
-            $slotType = strtoupper(
-                str_replace('_', ' ', $row->slot_type ?? '')
-            );
-
+            $slotType = strtoupper(str_replace('_', ' ', $row->slot_type ?? ''));
             $MisHallData[] = [
                 'invoice_id' => $row->invoice_id,
                 'order_id' => $row->order_id,
@@ -4309,15 +4266,10 @@ class HallBookingController extends Controller
                 'customer_name' => $row->customer_name,
                 'service_name' => $row->service_name,
                 'hall_type' => $row->hall_type,
-
-                // Correct slot_type
                 'slot_type' => $slotType,
-
                 'total_amount' => $row->total_amount,
                 'status' => $row->status,
                 'oderID' => $row->oderID,
-
-                // Required by Blade
                 'link' => 1,
                 'book_from' => '',
                 'cancel_date' => ''
@@ -4325,14 +4277,7 @@ class HallBookingController extends Controller
         }
 
         return view(
-            'hall.hall-booking-report',
-            compact(
-                'MisHallData',
-                'MasterProperty',
-                'property_id',
-                'report_type',
-                'check_date'
-            )
+            'hall.hall-booking-report',compact('MisHallData','MasterProperty','property_id','report_type','check_date')
         );
     }
 
@@ -4346,17 +4291,34 @@ class HallBookingController extends Controller
                 ->with('error', 'Your session has expired. Please login again.');
         }
 
-        $hallQuery = Hall::query();
-
-        if ($user->access_type == 'vendor') {
-            $vendorId = ($user->role == 2) ? $user->id : $user->vendor_id;
-            $hallQuery->where('created_by', $vendorId);
-        }
-
-        $HallList = $hallQuery
+        // ---------- Property dropdown (same as propertyAvailability) ----------
+        $hallQuery = Hall::query()
             ->where('is_deleted', 0)
             ->whereNotNull('property_id')
             ->whereNotNull('hcategory_id')
+            ->whereHas('property', function ($query) {
+                $query->where('is_deleted', 0)
+                    ->where('status', '1');
+            });
+
+        if ($user->access_type != 'superadmin') {
+            $vendorId = ($user->role == 2) ? $user->id : (!empty($user->vendor_id) ? $user->vendor_id : $user->id);
+
+            $hallQuery->whereHas('property', function ($query) use ($vendorId) {
+                $query->where('vender_id', $vendorId);
+            });
+        }
+
+        if ($user->role == 3) {
+            $subuserPropertyIds = SubuserAccess::where([
+                'user_id' => $user->id,
+                'service' => 'hall',
+            ])->pluck('service_id')->unique()->toArray();
+
+            $hallQuery->whereIn('property_id', $subuserPropertyIds);
+        }
+
+        $HallList = $hallQuery
             ->select('id', 'hall_name', 'property_id', 'hcategory_id', 'created_by')
             ->orderBy('hall_name', 'asc')
             ->get();
@@ -4368,15 +4330,13 @@ class HallBookingController extends Controller
             ->values()
             ->toArray();
 
-        $MasterProperty = HallProperty::query()
-            ->where('is_deleted', 0)
+        $MasterProperty = HallProperty::where('is_deleted', 0)
             ->where('status', '1')
             ->whereIn('id', $propertyIds)
             ->orderBy('property_name', 'asc')
             ->pluck('property_name', 'id');
 
         $PropertyId = $request->get('property_id');
-
         if (empty($PropertyId) && $MasterProperty->isNotEmpty()) {
             $PropertyId = $MasterProperty->keys()->first();
         }
@@ -4561,12 +4521,13 @@ class HallBookingController extends Controller
         );
     }
 
-
-    public function offlineHallOrder(){
+    public function offlineHallOrder()
+    {
         $user = Auth::user();
+
         $propertyQuery = HallProperty::whereHas('halls', function ($query) {
             $query->where('is_deleted', 0)
-                ->where('status', 1);
+                ->where('status', '1');
         })
             ->where(function ($query) {
                 $query->where('is_deleted', 0)
@@ -4575,22 +4536,27 @@ class HallBookingController extends Controller
             ->whereNotNull('property_name')
             ->where('property_name', '!=', '');
 
-        if ((int) $user->role === 2) {
+        if ($user->access_type != 'superadmin') {
+            $vendorId = ((int) $user->role === 2) ? $user->id : (!empty($user->vendor_id) ? $user->vendor_id : $user->id);
+            $propertyQuery->where('vender_id', $vendorId);
+        }
 
-            $propertyQuery->where('vender_id', $user->id);
+        if ((int) $user->role === 3) {
+            $assignedIds = SubuserAccess::where([
+                'user_id' => $user->id,
+                'service' => 'hall',
+            ])->pluck('service_id')->unique()->toArray();
 
-        } elseif (!empty($user->vendor_id) && !in_array($user->access_type,['admin', 'superadmin'])) {
-
-            $propertyQuery->where('vender_id', $user->vendor_id);
+            $propertyQuery->whereIn('id', $assignedIds);
         }
 
         $MasterProperty = $propertyQuery
             ->orderBy('property_name', 'asc')
             ->pluck('property_name', 'id');
 
-        $CountryData = Country::orderBy('name','asc')->pluck('name', 'id');
+        $CountryData = Country::orderBy('name', 'asc')->pluck('name', 'id');
 
-        $adminUser = in_array($user->access_type,['admin', 'superadmin']) ? 1 : 0;
+        $adminUser = in_array($user->access_type, ['admin', 'superadmin']) ? 1 : 0;
 
         $hallCategory = HallCategory::where('is_deleted', 0)
             ->where('status', '1')
@@ -4598,7 +4564,7 @@ class HallBookingController extends Controller
             ->pluck('hcategory_name', 'id');
 
         return view('hall.offline-hall-order',
-            compact('MasterProperty', 'CountryData', 'adminUser','hallCategory')
+            compact('MasterProperty', 'CountryData', 'adminUser', 'hallCategory')
         );
     }
 
@@ -4610,7 +4576,6 @@ class HallBookingController extends Controller
     {
         if ($request->isMethod('get')) {
             if (!(parent::checkViewPrivilege(29))) {
-
                 Session::flash('failure','You are not authorised to view this page.');
                 return redirect()->back();
             }
@@ -5808,6 +5773,5 @@ class HallBookingController extends Controller
             'message' => 'Unable to validate Hall slot availability.'
         ];
     }
-
 
 }
