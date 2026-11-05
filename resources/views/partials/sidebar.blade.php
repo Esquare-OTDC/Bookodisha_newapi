@@ -303,7 +303,7 @@ $vendor_id = (Auth::user()->role == 2) ? Auth::user()->id : Auth::user()->vendor
                 </li>
                 @endif --}}
                 @endif
-                @if (in_array(Auth::user()->access_type, ['admin', 'superadmin']) || in_array('caravn', $services))
+                @if (in_array(Auth::user()->access_type, ['admin', 'superadmin']) || in_array('caravan', $services))
                 <li>
                     <a class="waves-effect" href="javascript:void(0);" aria-expanded="false"><i class="fa fa-bus fa-fw"></i> <span class="hide-menu">Caravan<i class="pull-right fa fa-chevron-down"></i></span></a>
                     <ul aria-expanded="false" class="collapse">
