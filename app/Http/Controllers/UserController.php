@@ -11387,6 +11387,13 @@ class UserController extends Controller
                         $html .= '<option value="' . $key . '">' . $value . '</option>';
                     }
                 }
+            }elseif ($request->service_type == 'caravan') {
+                $Caravan = MasterCaravan::where('vendor_id', $request->vendorId)->pluck('title', 'id');
+                if (!empty($Caravan)) {
+                    foreach ($Caravan as $key => $value) {
+                        $html .= '<option value="' . $key . '">' . $value . '</option>';
+                    }
+                }
             } elseif ($request->service_type == 'ticketing') {
                 $Ticket = Ticket::where('vendor_id', $request->vendorId)->pluck('name', 'id');
                 if (!empty($Ticket)) {

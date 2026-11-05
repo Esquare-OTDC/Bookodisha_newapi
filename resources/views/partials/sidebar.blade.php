@@ -88,6 +88,12 @@ $vendor_id = (Auth::user()->role == 2) ? Auth::user()->id : Auth::user()->vendor
                         @if (Auth::user()->access_type == 'superadmin' || in_array('merchandise', $services))
                         <li> <a href="{{ url('merchant-orders') }}">Merchant Orders</a> </li>
                         @endif
+                        @if (Auth::user()->access_type == 'superadmin' || in_array('caravan', $services))
+                        <li> <a href="{{ url('caravan-orders') }}">Caravan Orders</a> </li>
+                        @endif
+                        @if (Auth::user()->access_type == 'vendor' && in_array('caravan', $services))
+                        <li> <a href="{{ url('caravan-offline-order') }}">Caravan Offline Order</a> </li>
+                        @endif
                     </ul>
                 </li>
                 <li>
@@ -123,10 +129,10 @@ $vendor_id = (Auth::user()->role == 2) ? Auth::user()->id : Auth::user()->vendor
                         @if (Auth::user()->access_type == 'superadmin' || in_array('conference', $services))
                         <li> <a href="{{ url('hall-availablity-report') }}">Hall Availability Report</a> </li>
                         @endif
-                        @if (in_array(Auth::user()->access_type, ['admin', 'superadmin']) || in_array('caravn', $services))
+                        @if (in_array(Auth::user()->access_type, ['admin', 'superadmin']) || in_array('caravan', $services))
                         <li> <a href="{{ url('caravan-booking-report') }}">Caravan Booking Report</a> </li>
                         @endif
-                        @if (in_array(Auth::user()->access_type, ['admin', 'superadmin']) || in_array('caravn', $services))
+                        @if (in_array(Auth::user()->access_type, ['admin', 'superadmin']) || in_array('caravan', $services))
                         <li> <a href="{{ url('caravan-availability-report') }}">Caravan Availability Report</a> </li>
                         @endif
                     </ul>

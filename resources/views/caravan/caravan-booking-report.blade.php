@@ -33,15 +33,6 @@
 
             <button
                 type="button"
-                id="exportCSV"
-                class="btn btn-info"
-            >
-                Export Excel
-            </button>
-
-
-            <button
-                type="button"
                 id="exportData"
                 class="btn btn-info"
             >
@@ -353,258 +344,112 @@
                                     <td>
                                         {{ $val['total_amount'] }}
                                     </td>
-
-
-                                    <td>
-                                        {{ $val['status'] }}
-                                    </td>
-
+                                    <td>{{ $val['status'] }}</td>
                                 </tr>
-
                             @endforeach
-
                         </tbody>
-
                     </table>
-
                 </div>
-
             </div>
-
         </div>
-
     </div>
-
 </div>
 
 
 <script type="text/javascript">
-
 $(document).ready(function () {
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Datepicker
-    |--------------------------------------------------------------------------
-    */
-
     $('#datepicker-autoclose').datepicker({
-
         autoclose: true,
-
         format: "dd-mm-yyyy",
-
         todayHighlight: true
-
     });
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Reset
-    |--------------------------------------------------------------------------
-    */
-
-    $(document).on(
-        'click',
-        '#resetSession',
+    $(document).on('click','#resetSession',
         function () {
-
-            window.location.href =
-                window.location.pathname;
-
+            window.location.href =window.location.pathname;
         }
     );
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | View Caravan Invoice
-    |--------------------------------------------------------------------------
-    */
-
-    $(document).on(
-        'click',
-        '.viewInvoice',
+    $(document).on('click','.viewInvoice',
         function (event) {
-
             event.preventDefault();
-
-
-            var orderID =
-                $(this).data(
-                    'id'
-                );
-
-
-            var platform =
-                $(this).data(
-                    'platform'
-                );
-
+            var orderID = $(this).data('id');
+            var platform =$(this).data('platform');
 
             if (!orderID) {
-
-                alert(
-                    'Order ID is missing.'
-                );
-
+                alert('Order ID is missing.');
                 return;
             }
 
-
             $.ajax({
-
-                type:
-                    "POST",
-
-                url:
-                    "{{ route('caravan-oprsn') }}",
-
-
+                type:"POST",
+                url:"{{ route('caravan-oprsn') }}",
                 data: {
-
-                    _token:
-                        "{{ csrf_token() }}",
-
-                    orderID:
-                        orderID,
-
-                    platform:
-                        platform,
-
-                    request_type:
-                        "get_invoice_html"
-
+                    _token:"{{ csrf_token() }}",
+                    orderID: orderID,
+                    platform: platform,
+                    request_type:"get_invoice_html"
                 },
-
-
-                beforeSend:
-                    function () {
-
-                        console.log(
-                            'Sending invoice request...'
-                        );
-
-                    },
-
-
                 success:
                     function (data) {
-
-
-                        console.log(
-                            'Invoice Response:',
-                            data
-                        );
-
-
-                        var response =
-                            typeof data === 'string'
-                                ? JSON.parse(
-                                    data
-                                )
-                                : data;
-
-
-                        if (
-                            response.status ==
-                            1
-                        ) {
-
-                            var invoiceUrl =
-                                response.data ||
-                                response.file_path;
-
-
+                        var response = typeof data === 'string' ? JSON.parse(data)  : data;
+                        if (response.status == 1) {
+                            var invoiceUrl = response.data || response.file_path;
                             if (invoiceUrl) {
-
-                                window.open(
-                                    invoiceUrl,
-                                    '_blank'
-                                );
-
+                                window.open(invoiceUrl,'_blank');
                             } else {
-
-                                alert(
-                                    'Invoice URL not found.'
-                                );
+                                alert('Invoice URL not found.');
                             }
 
-                        } else {
-
-                            alert(
-                                response.message ||
-                                'Unable to generate invoice.'
-                            );
-                        }
-
+                        } 
                     },
-
-
-                error:
-                    function (xhr) {
-
-
-                        console.log(
-                            xhr.responseText
-                        );
-
-
-                        alert(
-                            'Unable to open invoice. HTTP Status: ' +
-                            xhr.status
-                        );
-
-                    }
-
             });
 
         }
     );
 
+    $(document).on('click', '#exportData', function () {
 
-    /*
-    |--------------------------------------------------------------------------
-    | Export Excel
-    |--------------------------------------------------------------------------
-    */
+        let caravanId = $("#caravan_id").val();
+        let reportType = $("#report_type").val();
+        let checkDate = $("#datepicker-autoclose").val();
 
-    $(document).on(
-        'click',
-        '#exportCSV',
-        function () {
+        $.ajax({
+            type: "POST",
+            url: "{{ url('caravan-oprsn') }}",
+            headers: {
+                'X-CSRF-Token': '{{ csrf_token() }}',
+            },
 
-            alert(
-                'Caravan Excel export will be implemented.'
-            );
+            data: {
+                request_type: "export_caravan_booking_report",
+                caravan_id: caravanId,
+                report_type: reportType,
+                check_date: checkDate
+            },
 
-        }
-    );
+            success: function (data) {
+                var downloadLink = document.createElement("a");
+                var blob = new Blob(["\ufeff", data], {type: 'text/csv;charset=utf-8;'});
+                var url = URL.createObjectURL(blob);
+                downloadLink.href = url;
+                downloadLink.download = "Caravan_Booking_Report_" + new Date().getTime() + ".csv";
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                URL.revokeObjectURL(url);
 
+            },
 
-    /*
-    |--------------------------------------------------------------------------
-    | Export
-    |--------------------------------------------------------------------------
-    */
+            error: function (xhr) {
+                alert('Unable to export Caravan Booking Report.');
+            }
+        });
 
-    $(document).on(
-        'click',
-        '#exportData',
-        function () {
-
-            alert(
-                'Caravan export will be implemented.'
-            );
-
-        }
-    );
-
+    });
 
 });
-
 </script>
 
 @endsection

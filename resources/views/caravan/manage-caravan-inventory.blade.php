@@ -107,13 +107,14 @@
                 <h4 class="modal-title" id="exampleModalLabel1">Manage Blocked Inventory</h4>
             </div>
             <div class="modal-body">
+                <input type="text" id="blockDate">
                 <form onsubmit="event.preventDefault();">
                     <input type="hidden" id="mbid">
                     <div class="form-group">
                         <label class="display-modal">Current Blocked Quantity :</label> &nbsp;<span id="curBlockQty" class="display-modal"></span>
                     </div>
                     <div class="form-group">
-                        <label for="recipient-name" class="display-modal"> Enter no. of rooms you want to release</label>
+                        <label for="recipient-name" class="display-modal"> Enter no. of caravan you want to release</label>
                         <input type="number" class="form-control" id="releaseQty" min="1">
                         <span id="qtyBlockMessage" class="text-danger"></span>
                     </div>
@@ -144,34 +145,15 @@
             startDate: moment(),
             endDate: moment().add('+1', 'days'),
             minDate: moment(),
-//            maxDate: moment().add('+120','days'),
             locale: {
               format: 'DD-MM-YYYY'
             }
         });
 
-//        $(document).on('change', '#hotel', function () {
-//            let hotelId = $(this).val();
-//            if (hotelId != '') {
-//                $.ajax({
-//                    type: "POST",
-//                    url: "{{url('hotel-oprsn')}}",
-//                    headers: {
-//                        'X-CSRF-Token': '{{ csrf_token() }}',
-//                    },
-//                    data: {hotelId: hotelId, request_type: "get_hotel_rooms"},
-//                    success: function (data) {
-//                        $('#room').html('<option value="">Select Room</option>'+ data);
-//                    }
-//                });
-//            }
-//        });
-
         let searchValue1 = '';
         let searchValue2 = '';
         let searchValue3 = '';
         var oTable;
-//        getHotels(oTable, searchValue1, searchValue2, searchValue3);
 
         $(document).on('click', '#search', function () {
             let HotelId = $("#hotel").val();
@@ -242,7 +224,11 @@
         $(document).on('click', '.release-qty', function () {
             let Id = $(this).data('id');
             let blockQty = $(this).data('blocked');
+            let blockDate = $(this).data('date');
+
             $("#mbid").val(Id);
+            $("#blockDate").val(blockDate);
+
             $("#curBlockQty").html(blockQty);
             $("#releaseQty").attr('max', blockQty);
             $("#releaseQty").val(blockQty);
@@ -269,7 +255,12 @@
                     headers: {
                         'X-CSRF-Token': '{{ csrf_token() }}',
                     },
-                    data: {inventoryId: inventoryId, releaseQty: releaseQty, request_type: "change_block_inventory"},
+                    data: {
+                        inventoryId: inventoryId,
+                        block_date: $("#blockDate").val(), 
+                        releaseQty: releaseQty, 
+                        request_type: "change_block_inventory"
+                    },
                     success: function (data) {
                         var responce = $.parseJSON(data);
                         if (responce.status == 0) {

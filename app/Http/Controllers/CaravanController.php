@@ -8,6 +8,7 @@ use App\BlockedVehicle;
 use App\CaravanAvailability;
 use App\CaravanMasterInventory;
 use App\City;
+use Exception;
 use App\Country;
 use App\Coupon;
 use App\EmailTemplate;
@@ -35,6 +36,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 use Session;
 use PDF;
 use Validator, Redirect, Response;
@@ -43,6 +45,7 @@ class CaravanController extends Controller
 {
     public $site;
     public $frontendUrl;
+
     public function __construct()
     {
         $this->site = (env('APP_ENV') == 'local') ? env('TEST_URL') : env('APP_URL') . '/';
@@ -52,7 +55,6 @@ class CaravanController extends Controller
 
     public function allCaravan()
     {
-
         if (!(parent::checkViewPrivilege(16))) {
             Session::flash('success', 'You are not autherised to view this page.');
             return redirect()->back();
@@ -60,7 +62,6 @@ class CaravanController extends Controller
         $Vendors = User::where('role', '2')->pluck('company', 'id');
 
         return view('caravan.all-caravan', compact('Vendors'));
-
     }
 
     public function getCaravanDetails(Request $request)
@@ -72,18 +73,11 @@ class CaravanController extends Controller
         }
 
         $sIndexColumn = "id";
-        //$sTable = "master_caravans";
         $sTable = "master_caravans";
-        /*
-         * Paging
-         */
         $sLimit = "";
         if (isset($_POST['start']) && $_POST['length'] != '-1') {
             $sLimit = "LIMIT " . intval($_POST['start']) . ", " . intval($_POST['length']);
         }
-        /*
-         * Ordering
-         */
         $sOrder = " ORDER BY id DESC ";
         if (isset($_POST['order'])) {
             $sOrder = "ORDER BY ";
@@ -98,12 +92,6 @@ class CaravanController extends Controller
                 $sOrder = "";
             }
         }
-        /*
-         * Filtering
-         * NOTE this does not match the built-in DataTables filtering which does it
-         * word by word on any field. It's possible to do here, but concerned about efficiency
-         * on very large tables, and MySQL's regex functionality is very limited
-         */
         $vendor_condtition = '';
         if (Auth::user()->access_type == 'vendor') {
             $vender_id = (Auth::user()->role == 2) ? Auth::user()->id : Auth::user()->vendor_id;
@@ -134,8 +122,6 @@ class CaravanController extends Controller
             $sWhere = substr_replace($sWhere, "", -3);
             $sWhere .= ')';
         }
-
-        /* Individual column filtering */
         for ($i = 0; $i < count($aColumns); $i++) {
             if (isset($_POST['bSearchable_' . $i]) && $_POST['bSearchable_' . $i] == "true" && $_POST['sSearch_' . $i] != '') {
                 if ($sWhere == "") {
@@ -146,27 +132,15 @@ class CaravanController extends Controller
                 $sWhere .= "`" . $aColumns[$i] . "` LIKE '%" . $_POST['sSearch_' . $i] . "%' ";
             }
         }
-
-        /*
-         * SQL queries
-         * Get data to display
-         */
         $sQuery = "SELECT SQL_CALC_FOUND_ROWS * FROM   $sTable $sWhere $sOrder $sLimit";
-        // echo $sQuery;exit;
         $rResult = DB::select($sQuery);
-
-        /* Data set length after filtering */
         $sQuery = "SELECT FOUND_ROWS() as totalrow";
         $aResultFilterTotal = DB::select($sQuery);
         $iFilteredTotal = $aResultFilterTotal[0]->totalrow;
-        /* Total data set length */
         $sQuery = "SELECT COUNT(`" . $sIndexColumn . "`) as countindex FROM $sTable $sWhere";
         $aResultTotal = DB::select($sQuery);
         $iTotal = $aResultTotal[0]->countindex;
 
-        /*
-         * Output
-         */
         $output = array(
             "draw" => intval($_POST['draw']),
             "recordsTotal" => $iTotal,
@@ -176,7 +150,6 @@ class CaravanController extends Controller
 
         foreach ($rResult as $aRow) {
             $row = array();
-
             $User = User::find($aRow->vendor_id);
 
             $row[] = '<div class="checkbox-fade fade-in-primary"><label><input type="checkbox" value="' . $aRow->id . '" class="itemcheck"><span class="cr"><i class="cr-icon icofont icofont-ui-check txt-primary"></i></span></label></div>';
@@ -195,7 +168,6 @@ class CaravanController extends Controller
                     <li><a href="javascript:void(0)" class="deleteCaravan" data-id="' . $aRow->id . '">Delete</a></li>
                 </ul>
             </div>';
-
             $output['data'][] = $row;
         }
 
@@ -222,8 +194,6 @@ class CaravanController extends Controller
         }
         $CaravanDetails->feature_image = asset($CaravanDetails->feature_image);
         $CaravanDetails->banner_image = asset($CaravanDetails->banner_image);
-        // $CaravanDetails->feature_image = $this->site . $CaravanDetails->feature_image;
-        // $CaravanDetails->banner_image  = $this->site . $CaravanDetails->banner_image;
         $CaravanDetails->gallery = json_decode($CaravanDetails->gallery, true);
 
         $gallery = [];
@@ -232,7 +202,6 @@ class CaravanController extends Controller
             foreach ($CaravanDetails->gallery as $value) {
                 $gallery[] = [
                     'id' => $count,
-                    // 'src' => $this->site . $value
                     'src' => asset($value)
                 ];
                 $count++;
@@ -269,27 +238,15 @@ class CaravanController extends Controller
             ->pluck('name', 'id')
             ->toArray();
 
-        return view(
-            'caravan.edit-caravan',
-            compact(
-                'Vendors',
-                'CaravanDetails',
-                'CaravanAttributes',
-                'CityDetail',
-                'gallery'
-            )
-        );
+        return view('caravan.edit-caravan',compact('Vendors','CaravanDetails','CaravanAttributes','CityDetail','gallery'));
     }
 
     public function caravanEditRequest(Request $request)
     {
-
         $validate = Validator::make($request->all(), [
             'vendor_id' => 'required',
             'title' => 'required|string|min:3|max:100',
         ]);
-
-        // Dynamic validation based on selected type
         $carBookType = $request->car_book_type;
         $priceField = 'price_per_day' . $carBookType;
         $quantityField = 'quantity' . $carBookType;
@@ -407,23 +364,8 @@ class CaravanController extends Controller
 
             $AttributeValues = AttributeValue::pluck('icon', 'id');
 
-            // $Property = $request->property;
-            // $property_slug_array = array();
-            // if (!empty($Property)) {
-            //     foreach ($Property as $key1 => $attribute) {
-            //         foreach ($attribute as $key2 => $terms) {
-            //             $temp = explode('~', $terms);
-            //             $Property[$key1][$key2] = array('name' => $temp[1], 'icon' => $AttributeValues[$temp[0]]);
-            //             $property_slug_array[] = $temp[1];
-            //         }
-            //     }
-            // }
-            // $Caravan->property_slug = implode("~",$property_slug_array);
-            // $Caravan->property = json_encode($Property);
-
-
             $property_slug_data = AttributeValue::where('id', $request->car_book_type)
-                ->get(['name', 'icon', 'slug']); // fetch once
+                ->get(['name', 'icon', 'slug']);
 
             $withoutSlug = $property_slug_data->map(function ($item) {
                 return [
@@ -439,7 +381,7 @@ class CaravanController extends Controller
             $Caravan->property = json_encode($result);
             if ($Caravan->save()) {
 
-                Session::flash('success', 'Caravan details updated successful.');
+                Session::flash('success', 'Caravan details updated successfully.');
                 return Redirect::to('all-caravan');
             } else {
                 Session::flash('success', 'Unable to update Caravan details!');
@@ -462,7 +404,7 @@ class CaravanController extends Controller
         $CarAttributes = array();
         foreach ($Attributes as $key => $value) {
             $AttributeValue = AttributeValue::where('attr_id', $key)->pluck('name', 'id')->toArray();
-            $CarAttributes = $AttributeValue; //array_values($AttributeValue);
+            $CarAttributes = $AttributeValue; 
         }
 
         $CityDetail = City::where(['state_id' => Auth::user()->state])->pluck('name', 'id')->toArray();
@@ -472,11 +414,8 @@ class CaravanController extends Controller
 
     public function caravanAddRequest(Request $request)
     {
-        //dd($request->all());
         $priceField = 'price_per_day' . $request->car_book_type;
         $quantityField = 'quantity' . $request->car_book_type;
-
-        // dd($request->all());
 
         $validate = Validator::make($request->all(), [
             'vendor_id' => 'required',
@@ -533,19 +472,8 @@ class CaravanController extends Controller
                 $faqs = json_encode($data);
             }
             $slug = Str::uuid()->toString() . '-' . Str::random(16);
-            // $property_slug_data = AttributeValue::where('id', $request->car_book_type)
-            //     ->get(['name', 'icon', 'slug'])
-            //     ->map(function ($item) {
-            //         return [
-            //             'name' => $item->name,
-            //             'icon' => $item->icon,
-            //             'slug' => $item->slug,
-            //         ];
-            //     })
-            //     ->toArray();
 
-            $property_slug_data = AttributeValue::where('id', $request->car_book_type)
-                ->get(['name', 'icon', 'slug']); // fetch once
+            $property_slug_data = AttributeValue::where('id', $request->car_book_type)->get(['name', 'icon', 'slug']); 
             $withoutSlug = $property_slug_data->map(function ($item) {
                 return [
                     'name' => $item->name,
@@ -556,16 +484,7 @@ class CaravanController extends Controller
                 "Vehicle Type" => $withoutSlug
             ];
             $property_slug = $property_slug_data->pluck('name')->first(); // create a pluck for slug
-            //$AttributeValues = AttributeValue::pluck('icon', 'id');
-            // $Property = $request->property;
-            // $property_slug_array = array();
-            // foreach ($Property as $key1 => $attribute) {
-            //     foreach ($attribute as $key2 => $terms) {
-            //         $temp = explode('~', $terms);
-            //         $Property[$key1][$key2] = array('name' => $temp[1], 'icon' => $AttributeValues[$temp[0]]);
-            //         $property_slug_array[] = $temp[1];
-            //     }
-            // }
+    
             $add_email = $arr = explode(",", $request->additional_email);
             $add_email = array_filter($add_email, function ($n) {
                 return !empty(trim($n));
@@ -575,8 +494,7 @@ class CaravanController extends Controller
             $add_phone = array_filter($add_phone, function ($n) {
                 return !empty(trim($n));
             });
-            // dd($property_slug);
-
+           
             $Caravan = new MasterCaravan([
                 'vendor_id' => $request->vendor_id,
                 'title' => trim($request->title),
@@ -631,7 +549,7 @@ class CaravanController extends Controller
                 }
                 CaravanMasterInventory::insert($inventory);
 
-                Session::flash('success', 'Caravan added successful.');
+                Session::flash('success', 'Caravan added successfully.');
                 return Redirect::to('all-caravan');
             } else {
                 Session::flash('success', 'Unable to add Caravan');
@@ -672,7 +590,7 @@ class CaravanController extends Controller
                 'slug' => $slug
             ]);
             if ($CarAttribute->save()) {
-                Session::flash('success', 'Caravan attribute added successful.');
+                Session::flash('success', 'Caravan attribute added successfully.');
                 return Redirect::to('caravan-attribute');
             } else {
                 Session::flash('success', 'Unable to add attribute');
@@ -702,7 +620,6 @@ class CaravanController extends Controller
         }
         $validate = Validator::make($request->all(), [
             'name' => 'required|string',
-            //            'status' => 'required|string',
             'attr_id' => 'required|numeric',
             'icon' => 'mimes:jpeg,png,jpg'
         ]);
@@ -725,10 +642,9 @@ class CaravanController extends Controller
                 'icon' => $icon_image,
                 'attr_id' => $request->attr_id,
                 'slug' => Str::uuid()->toString() . '-' . Str::random(16),
-                //                'status' => $request->status
             ]);
             if ($AttributeTerm->save()) {
-                Session::flash('success', 'Attribute term added successful.');
+                Session::flash('success', 'Attribute term added successfully.');
                 return Redirect::to('caravan-attribute-terms/' . $request->attr_id);
             } else {
                 Session::flash('success', 'Unable to add attribute term');
@@ -748,9 +664,7 @@ class CaravanController extends Controller
             Session::flash('error', 'You are not authorised to view this page.');
             return redirect()->back();
         }
-
         $blockedCaravans = BlockedCaravan::orderBy('block_date', 'desc')->get();
-
 
         return view('caravan.caravan-block', compact('blockedCaravans'));
     }
@@ -922,7 +836,6 @@ class CaravanController extends Controller
             $MasterCarQuery->where('vendor_id', $vender_id);
         }
         $MasterCaravan = $MasterCarQuery->orderBy('title', 'ASC')->pluck('title', 'id');
-        //print_r($MasterCaravan);exit;
         return view('caravan.manage-caravan-inventory', compact('MasterCaravan'));
     }
 
@@ -952,7 +865,7 @@ class CaravanController extends Controller
                 $item_array = json_decode($request->IdArray);
                 DB::table('master_caravans')->whereIn('id', $item_array)->update(['status' => 'publish', 'update_user' => Auth::user()->id]);
                 $responce['status'] = 1;
-                $responce['message'] = 'vehicles publish successful.';
+                $responce['message'] = 'vehicles publish successfully.';
             }
         } elseif ($request->request_type == 'draft') {
             if (!(parent::checkWritePrivilege(16))) {
@@ -1007,7 +920,6 @@ class CaravanController extends Controller
                         }
                     }
                     $MasterCar->delete();
-
                     CaravanMasterInventory::where('caravan_id', $MasterCar->id)->delete();
                     CaravanAvailability::where('caravan_id', $MasterCar->id)->delete();
 
@@ -1064,7 +976,6 @@ class CaravanController extends Controller
             } else {
                 $ServiceSttribute = ServiceAttribute::find($request->Id);
                 $ServiceSttribute->name = $request->attrName;
-                //$ServiceSttribute->status = $request->attrStatus;
                 if ($ServiceSttribute->save()) {
                     $responce['status'] = 1;
                     $responce['message'] = 'Changes saved successfully.';
@@ -1082,7 +993,6 @@ class CaravanController extends Controller
                 if (!empty($AttributeTerm)) {
                     $validate = Validator::make($request->all(), [
                         'name' => 'required|string',
-                        //                        'attrStatus' => 'required|string',
                         'icon' => 'mimes:jpeg,png,jpg',
                     ]);
                     if ($validate->fails()) {
@@ -1110,8 +1020,6 @@ class CaravanController extends Controller
                             }
                         }
                         $AttributeTerm->name = $request->name;
-                        //                        $AttributeTerm->status = $request->attrStatus;
-
                         $AttributeTerm->save();
                         $responce['status'] = 1;
                         $responce['message'] = 'Changes saved successfully.';
@@ -1150,7 +1058,7 @@ class CaravanController extends Controller
                     $BlockedData->delete();
 
                     $responce['status'] = 1;
-                    $responce['message'] = 'Delete successful.';
+                    $responce['message'] = 'Delete successfully.';
                 } else {
                     $responce['status'] = 0;
                     $responce['message'] = 'Unable to delete data.';
@@ -1166,7 +1074,7 @@ class CaravanController extends Controller
                     $BlockedData->delete();
 
                     $responce['status'] = 1;
-                    $responce['message'] = 'Delete successful.';
+                    $responce['message'] = 'Delete successfully.';
                 } else {
                     $responce['status'] = 0;
                     $responce['message'] = 'Unable to delete data.';
@@ -1179,7 +1087,6 @@ class CaravanController extends Controller
                 ->where(['caravan_id' => $request->caravanId])
                 ->where('date', 'like', $check_date . '%')
                 ->get();
-            //dd($MasterInventory, $check_date);
             if (!empty($MasterInventory)) {
                 $available_data = array();
                 foreach ($MasterInventory as $value) {
@@ -1193,140 +1100,125 @@ class CaravanController extends Controller
                 $responce['data'] = [];
             }
         } elseif ($request->request_type == 'get_caravan_details') {
-            $Mastercar = MasterCaravan::find($request->caravanId);
+            $Mastercar = MasterCaravan::find($request->carId);
             if (!empty($Mastercar)) {
                 $responce['status'] = 1;
                 $responce['data'] = $Mastercar;
             } else {
                 $responce['status'] = 0;
-                $responce['message'] = 'Car details not found';
+                $responce['message'] = 'Caravan details not found';
             }
-        } elseif ($request->request_type == 'calculate_price') {
-            $CarDetails = MasterCaravan::find($request->caravanId);
-            if (!empty($CarDetails)) {
-                $GSTData = GstDetail::pluck('value', 'name')->toArray();
-                $taxPrice = 0;
-                $GstShowData = $tax_array = array();
-                $total_gst = $total_coupon_amt = $SubTotal = 0;
-                if ($CarDetails->gst_applicable == 1) {
-                    $GstTable = GstTable::where(['vendor_id' => $CarDetails->vendor_id, 'service_type' => 'rental'])
-                        ->orderBy('min_amount', 'asc')
-                        ->pluck('gst', 'min_amount')->toArray();
-                    $GstDetails = array();
-                    if (!empty($GstTable)) {
-                        foreach ($GstTable as $k => $gst) {
-                            $GstDetails[$k] = json_decode($gst, 1);
-                        }
-                    } else {
-                        $GstDetails[0] = $GSTData;
-                    }
-                    $GstMin = array_keys($GstDetails);
-                }
-                $bookFlag = 1;
-                $quantity_array = $price_breakup = array();
-                $service_details = json_decode($request->day_breakup_details, 1);
-                $start_date = date("Y-m-d", strtotime($service_details[0]['date']['startDate']));
-                $end_data = end($service_details);
-                $end_date = date("Y-m-d", strtotime($end_data['date']['endDate']));
-                $BlockedVehicle = BlockedCaravan::where('caravan_id', $CarDetails->id)
-                    ->whereBetween('block_date', [$start_date, $end_date])
-                    ->get()->toArray();
-                if (!empty($BlockedVehicle)) {
+        }elseif ($request->request_type == 'calculate_price') {
+            $CarDetails = MasterCaravan::find($request->carId);
+            if (empty($CarDetails)) {
+                $responce['status'] = 0;
+                $responce['message'] = 'Caravan details not found';
+                echo json_encode($responce);
+                exit;
+            }
+
+            $quantity = max(1, (int) $request->service_quantity);
+            $price_breakup = [];
+            $sub_total_price = 0;
+            $quantity_array = [];
+            $service_details = json_decode($request->day_breakup_details,true);
+
+            if (empty($service_details) || !is_array($service_details)) {
+                $responce['status'] = 0;
+                $responce['message'] = 'Invalid booking details.';
+                echo json_encode($responce);
+                exit;
+            }
+
+            foreach ($service_details as $val) {
+                if (empty($val['date']['startDate']) || empty($val['date']['endDate'])) {
+
                     $responce['status'] = 0;
-                    $responce['message'] = 'Sorry! The vehicle is not available for selected dates.';
+                    $responce['message'] = 'Invalid booking date.';
                     echo json_encode($responce);
                     exit;
                 }
-                $sub_total_price = 0;
-                foreach ($service_details as $val) {
-                    $totalPrice = $totalPriceKm = $totalPriceHr = $totalHour = $totalHaltPrice = $detention_charge = $detention_hour = $extrakm_price = $extrakm = 0;
-                    $difference = strtotime(date("Y-m-d", strtotime($val['date']['endDate']))) - strtotime(date("Y-m-d", strtotime($val['date']['startDate'])));
-                    $days = floor($difference / (60 * 60 * 24));
 
-                    $checkinDate = new DateTime($val['date']['startDate']);
-                    $checkoutDate = new DateTime($val['date']['endDate']);
+                $startTimestamp = strtotime($val['date']['startDate']);
+                $endTimestamp = strtotime($val['date']['endDate']);
 
-                    $interval = $checkinDate->diff($checkoutDate);
-                    $totalHour = $interval->format('%h') + ($interval->format('%d') * 24);
+                if ($startTimestamp === false || $endTimestamp === false || $endTimestamp <= $startTimestamp) {
+                    $responce['status'] = 0;
+                    $responce['message'] = 'Please select a valid booking date range.';
 
-                    $cal_day = ($days == 0) ? 1 : $days;
-                    for ($i = 0; $i < $cal_day; $i++) {
-                        $checkDate = date("Y-m-d", strtotime($val['date']['startDate'] . ' + ' . $i . ' days'));
-                        $MasterInventory = CaravanMasterInventory::where(["date" => $checkDate, "caravan_id" => $CarDetails->id])->first();
-                        if (!empty($MasterInventory) && $MasterInventory->total_available < 1) {
-                            $bookFlag = 0;
-                            array_push($quantity_array, date("d-m-Y", strtotime($checkDate)));
-                        }
-                    }
-                    if ($bookFlag == 0) {
-                        $responce['status'] = 0;
-                        $responce['message'] = 'Sorry! The vehicle is not available on date ' . implode(", ", $quantity_array);
-                        echo json_encode($responce);
-                        exit;
-
-                    }
-
-                    $cover_day = $days + 1;
-                    $price_per_day = $CarDetails->price_per_day;
-                    $totalPrice = (int) $cover_day * $price_per_day;
-
-                    $price_breakup[] = array(
-                        "price_per_days" => $price_per_day,
-                        "total_days" => $cover_day,
-                        "booking_date" => array(
-                            "startDate" => date("d-m-Y h:i a", strtotime($val['date']['startDate'])),
-                            "endDate" => date("d-m-Y h:i a", strtotime($val['date']['endDate']))
-                        ),
-                        "totalPrice" => $totalPrice
-                    );
-
-
-                    $sub_total_price += $totalPrice;
-                    if ($CarDetails->gst_applicable == 1) {
-                        $filter_res = array_filter($GstMin, function ($n) use ($totalPrice) {
-                            return $n <= $totalPrice;
-                        });
-                        if (!empty($filter_res)) {
-                            $tempr = $GstDetails[end($filter_res)];
-                            if (!empty($tax_array)) {
-                                foreach ($tempr as $g_name => $g_val) {
-                                    //                                    $taxPercent += $g_val;
-                                    $tax_amt = ceil($totalPrice * ($g_val / 100));
-                                    $tax_array[$g_name] += $tax_amt;
-                                }
-                            } else {
-                                foreach ($tempr as $g_name => $g_val) {
-                                    //                                    $taxPercent += $g_val;
-                                    $tax_amt = ceil($totalPrice * ($g_val / 100));
-                                    $tax_array[$g_name] = $tax_amt;
-                                }
-                            }
-                        }
-                    }
+                    echo json_encode($responce);
+                    exit;
                 }
-                $GstShowData = array();
-                foreach ($tax_array as $key => $val) {
-                    $GstShowData[] = [
-                        'gst_name' => $key,
-                        'gst_percentage' => $tempr[$key],
-                        'gst_value' => round($val, 2)
-                    ];
-                    $total_gst += $val;
-                }
-                $taxPrice = round($total_gst, 2);
-                $total_price = round($sub_total_price + $total_gst + $CarDetails->service_fee, 2);
-
-                $responce['status'] = 1;
-                $responce['gst_data'] = $GstShowData;
-                $responce['grossPrice'] = $sub_total_price;
-                $responce['subTotalPrice'] = $sub_total_price;
-                $responce['totalOrderPrice'] = $total_price;
-                $responce['price_breakup'] = $price_breakup;
-            } else {
-                $responce['status'] = 0;
-                $responce['message'] = 'Caravan details not found';
             }
-        } elseif ($request->request_type == 'verify_coupon') {
+
+            $start_date = date('Y-m-d',strtotime($service_details[0]['date']['startDate']));
+            $lastBooking = end($service_details);
+            $end_date = date('Y-m-d',strtotime($lastBooking['date']['endDate']));
+
+            $BlockedVehicle = BlockedCaravan::where('caravan_id',$CarDetails->id)
+            ->whereBetween('block_date', [$start_date, $end_date])
+            ->exists();
+
+            if ($BlockedVehicle) {
+                $responce['status'] = 0;
+                $responce['message'] ='Sorry! The vehicle is not available for selected dates.';
+                echo json_encode($responce);
+                exit;
+            }
+            $pricePerDay = (float) $CarDetails->price_per_day;
+            foreach ($service_details as $val) {
+                $startDate = date('Y-m-d',strtotime($val['date']['startDate']));
+                $endDate = date('Y-m-d',strtotime($val['date']['endDate']));
+                $start = new DateTime($startDate);
+                $end = new DateTime($endDate);
+                $bookingDays = (int) $start->diff($end)->days;
+                $bookingDays = max(1, $bookingDays);
+                $cal_day = $bookingDays + 1;
+
+                for ($i = 0; $i < $cal_day; $i++) {
+                    $checkDate = date('Y-m-d',strtotime($startDate . ' + ' . $i . ' days'));
+                    $MasterInventory = CaravanMasterInventory::where('caravan_id',$CarDetails->id)
+                    ->whereDate('date', $checkDate)
+                    ->first();
+
+                    if (empty($MasterInventory) || $MasterInventory->total_available < $quantity) {
+                        $quantity_array[] = date('d-m-Y',strtotime($checkDate));
+                    }
+                }
+
+                if (!empty($quantity_array)) {
+
+                    $responce['status'] = 0;
+                    $responce['message'] ='Sorry! The vehicle is not available on date ' . implode(', ', array_unique($quantity_array));
+
+                    echo json_encode($responce);
+                    exit;
+                }
+
+                $totalPrice = $bookingDays * $pricePerDay * $quantity;
+                $price_breakup[] = [
+                    'price_per_day' => $pricePerDay,
+                    'booking_days' => $bookingDays,
+                    'service_quantity' => $quantity,
+                    'booking_date' => [
+                        'startDate' => date('d-m-Y h:i a',strtotime($val['date']['startDate'])),
+                        'endDate' => date('d-m-Y h:i a', strtotime($val['date']['endDate']))
+                    ],
+                    'totalPrice' => $totalPrice
+                ];
+                $sub_total_price += $totalPrice;
+            }
+
+            $serviceFee = (float) $CarDetails->service_fee;
+            $totalOrderPrice = round($sub_total_price + $serviceFee,2);
+
+            $responce['status'] = 1;
+            $responce['totalOrderPrice'] = $totalOrderPrice;
+            $responce['price_breakup'] = $price_breakup;
+
+            echo json_encode($responce);
+            exit;
+        }elseif ($request->request_type == 'verify_coupon') {
             $vendor_id = (Auth::user()->role == 2) ? Auth::user()->id : Auth::user()->vendor_id;
             $coupons = Coupon::where(['service_type' => 'caravan', 'coupon_code' => $request->coupon_code, 'vendor_id' => $vendor_id])
                 ->where('start_date', '<=', date("Y-m-d", strtotime($request->checkIn)))
@@ -1447,30 +1339,59 @@ class CaravanController extends Controller
                 }
             }
         } elseif ($request->request_type == 'change_block_inventory') {
-            if (!(parent::checkWritePrivilege(69))) {
+            if (!parent::checkWritePrivilege(69)) {
                 $responce['status'] = 0;
-                $responce['message'] = 'You are not autherised to do this operation.';
+                $responce['message'] = 'You are not authorised to do this operation.';
             } else {
-                $MasterInventory = CaravanMasterInventory::find($request->inventoryId);
-                if (!empty($MasterInventory)) {
-                    $changeQty = $request->releaseQty;
-                    $initial_qty = $total_available = 0;
-                    if ($changeQty > $MasterInventory->total_blocked) {
-                        $responce['status'] = 0;
-                        $responce['message'] = 'You can release maximum ' . $MasterInventory->total_blocked . ' number of vehicles.';
-                    } elseif ($changeQty < 1) {
-                        $responce['status'] = 0;
-                        $responce['message'] = 'You can release minimum 1 vehicle.';
-                    } else {
-                        $MasterInventory->total_available = $MasterInventory->total_available + $changeQty;
-                        $MasterInventory->total_blocked = $MasterInventory->total_blocked - $changeQty;
-                        $MasterInventory->save();
-                        $responce['status'] = 1;
-                        $responce['message'] = 'Inventory updated successfully.';
+                DB::beginTransaction();
+                try {
+                    $MasterInventory = CaravanMasterInventory::where('id',$request->inventoryId)->lockForUpdate()->first();
+
+                    if (empty($MasterInventory)) {
+                        throw new Exception('Invalid data input.');
                     }
-                } else {
+
+                    $changeQty = (int) $request->releaseQty;
+                    if ($changeQty > $MasterInventory->total_blocked) {
+                        throw new Exception('You can release maximum ' .$MasterInventory->total_blocked .' number of vehicles.');
+                    }
+
+                    if ($changeQty < 1) {
+                        throw new Exception('You can release minimum 1 vehicle.');
+                    }
+                    $blockedInventory = BlockedCaravan::where('caravan_id',$MasterInventory->caravan_id)
+                    ->whereDate('block_date', $request->block_date)
+                    ->where('status', 1)
+                    ->lockForUpdate()
+                    ->first();
+
+                    if (empty($blockedInventory)) {
+                        throw new Exception('No blocked inventory found for this date.');
+                    }
+
+                    if ($changeQty > $blockedInventory->quantity) {
+                        throw new Exception('You can release maximum ' . $blockedInventory->quantity . ' vehicles for this date.');
+                    }
+
+                    $blockedInventory->quantity -= $changeQty;
+
+                    if ($blockedInventory->quantity == 0) {
+                        $blockedInventory->status = 0;
+                    }
+
+                    $blockedInventory->save();
+
+                    $MasterInventory->total_available += $changeQty;
+                    $MasterInventory->total_blocked -= $changeQty;
+                    $MasterInventory->save();
+
+                    DB::commit();
+                    $responce['status'] = 1;
+                    $responce['message'] = 'Inventory updated successfully.';
+                } catch (\Exception $e) {
+                    DB::rollBack();
                     $responce['status'] = 0;
-                    $responce['message'] = 'Invalid data input.';
+                    $responce['message'] = $e->getMessage();
                 }
             }
         } elseif ($request->request_type == 'export_caravan_mis_report') {
@@ -1512,770 +1433,448 @@ class CaravanController extends Controller
             fclose($fp);
             return response()->download($csvname)->deleteFileAfterSend(true);
         } elseif ($request->request_type == 'get_invoice_html') {
-
             try {
-
-                /*
-                |--------------------------------------------------------------------------
-                | Validate Order ID
-                |--------------------------------------------------------------------------
-                */
-
                 if (empty($request->orderID)) {
-
                     return response()->json([
                         'status' => 0,
                         'message' => 'Order ID is required.'
                     ]);
                 }
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Get Order Master
-                |--------------------------------------------------------------------------
-                */
-
-                $OrderMaster = OrderMaster::where(
-                    'order_id',
-                    $request->orderID
-                )
-                    ->where(
-                        'service_type',
-                        'caravan'
-                    )
+                $OrderMaster = OrderMaster::where('order_id',$request->orderID)
+                    ->where('service_type','caravan')
                     ->first();
 
-
                 if (empty($OrderMaster)) {
-
                     return response()->json([
                         'status' => 0,
                         'message' => 'Caravan order not found.'
                     ]);
                 }
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Get Caravan Booking Details
-                |--------------------------------------------------------------------------
-                */
-
                 $bookings = DB::table('caravan_bookings as cb')
-
-                    ->join(
-                        'master_caravans as mc',
-                        'cb.caravan_id',
-                        '=',
-                        'mc.id'
-                    )
-
-                    ->join(
-                        'order_masters as om',
-                        'cb.booking_id',
-                        '=',
-                        'om.order_id'
-                    )
-
+                    ->join('master_caravans as mc','cb.caravan_id','=','mc.id')
+                    ->join('order_masters as om','cb.booking_id','=','om.order_id')
                     ->select(
-
                         'om.invoice_id',
-
                         'om.order_id',
-
                         'om.order_type',
-
                         'mc.title as caravan_name',
-
                         'cb.start_date',
-
                         'cb.end_date',
-
                         'cb.no_of_days',
-
                         'cb.totalPrice as booking_amount'
                     )
-
-                    ->where(
-                        'om.order_id',
-                        $request->orderID
-                    )
-
-                    ->where(
-                        'om.service_type',
-                        'caravan'
-                    )
-
-                    ->orderBy(
-                        'cb.start_date',
-                        'asc'
-                    )
-
+                    ->where('om.order_id',$request->orderID)
+                    ->where('om.service_type','caravan')
+                    ->orderBy('cb.start_date','asc')
                     ->get();
-
-
                 if ($bookings->isEmpty()) {
-
                     return response()->json([
                         'status' => 0,
                         'message' => 'Caravan booking details not found.'
                     ]);
                 }
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Get Caravan Invoice Template
-                |--------------------------------------------------------------------------
-                */
-
-                $CaravanInvoice = DB::table(
-                    'email_templates'
-                )
-                    ->where(
-                        'ref_code',
-                        'caravanInvoice'
-                    )
+                $CaravanInvoice = DB::table('email_templates')
+                    ->where('ref_code','caravanInvoice')
                     ->first();
-
-
-                if (
-                    empty($CaravanInvoice) ||
-                    empty($CaravanInvoice->source)
-                ) {
-
+                if (empty($CaravanInvoice) || empty($CaravanInvoice->source)) {
                     return response()->json([
                         'status' => 0,
                         'message' => 'Caravan invoice template not found.'
                     ]);
                 }
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Customer Details
-                |--------------------------------------------------------------------------
-                */
-
-                $customerName =
-                    $OrderMaster->customer_name
-                    ?? '';
-
-
-                $customerPhone =
-                    $OrderMaster->customer_phone
-                    ?? $OrderMaster->phone
-                    ?? $OrderMaster->mobile
-                    ?? '';
-
-
-                $customerEmail =
-                    $OrderMaster->customer_email
-                    ?? $OrderMaster->email
-                    ?? '';
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Payment Details
-                |--------------------------------------------------------------------------
-                */
-
-                $paymentMethod =
-                    $OrderMaster->payment_method
-                    ?? $OrderMaster->payment_mode
-                    ?? 'PAYTM';
-
-
-                $transactionId =
-                    $OrderMaster->transaction_id
-                    ?? $OrderMaster->txnid
-                    ?? '';
-
-
-                $paymentReference =
-                    $OrderMaster->payuid
-                    ?? '';
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Grand Total
-                |--------------------------------------------------------------------------
-                */
-
-                $grandTotal = (float) (
-                    $OrderMaster->total_order_price
-                    ?? 0
-                );
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Main Logo
-                |--------------------------------------------------------------------------
-                */
+                $customerName = $OrderMaster->customer_name ?? '';
+                $customerPhone = $OrderMaster->customer_phone ?? $OrderMaster->phone ?? $OrderMaster->mobile ?? '';
+                $customerEmail =  $OrderMaster->customer_email  ?? $OrderMaster->email ?? '';
+                $paymentMethod = $OrderMaster->payment_method ?? $OrderMaster->payment_mode ?? 'PAYTM';
+                $transactionId = $OrderMaster->transaction_id ?? $OrderMaster->txnid ?? '';
+                $paymentReference = $OrderMaster->payuid ?? '';
+                $grandTotal = (float) ($OrderMaster->total_order_price ?? 0);
 
                 $mainLogo = '';
-
-
-                $mainLogoPath = public_path(
-                    'images/frontend/otdc_white.jpg'
-                );
-
-
+                $mainLogoPath = public_path('images/frontend/otdc_white.jpg');
                 if (file_exists($mainLogoPath)) {
-
-                    $mainLogoType = pathinfo(
-                        $mainLogoPath,
-                        PATHINFO_EXTENSION
-                    );
-
-
-                    $mainLogo =
-                        'data:image/' .
-                        $mainLogoType .
-                        ';base64,' .
-                        base64_encode(
-                            file_get_contents(
-                                $mainLogoPath
-                            )
-                        );
+                    $mainLogoType = pathinfo($mainLogoPath, PATHINFO_EXTENSION);
+                    $mainLogo ='data:image/' . $mainLogoType . ';base64,' . base64_encode( file_get_contents($mainLogoPath));
                 }
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Vendor Logo
-                |--------------------------------------------------------------------------
-                */
-
                 $companyLogo = '';
-
-
-                $companyLogoPath = public_path(
-                    'images/profile/otdc1_1_1746204931.png'
-                );
-
+                $companyLogoPath = public_path('images/profile/otdc1_1_1746204931.png');
 
                 if (file_exists($companyLogoPath)) {
 
-                    $companyLogoType = pathinfo(
-                        $companyLogoPath,
-                        PATHINFO_EXTENSION
-                    );
-
-
-                    $companyLogo =
-                        'data:image/' .
-                        $companyLogoType .
-                        ';base64,' .
-                        base64_encode(
-                            file_get_contents(
-                                $companyLogoPath
-                            )
-                        );
+                    $companyLogoType = pathinfo($companyLogoPath,PATHINFO_EXTENSION);
+                    $companyLogo ='data:image/' . $companyLogoType . ';base64,' . base64_encode(file_get_contents($companyLogoPath));
                 }
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Build Caravan Booking Rows
-                |--------------------------------------------------------------------------
-                |
-                | IMPORTANT:
-                | Exactly 5 TD columns matching template.
-                |
-                |--------------------------------------------------------------------------
-                */
-
                 $caravanPricing = '';
-
-
                 foreach ($bookings as $booking) {
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Booking ID
-                    |--------------------------------------------------------------------------
-                    */
-
-                    $bookingId = htmlspecialchars(
-                        $booking->invoice_id
-                        ?? '',
-                        ENT_QUOTES,
-                        'UTF-8'
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Mode of Transport
-                    |--------------------------------------------------------------------------
-                    */
-
-                    $caravanName = htmlspecialchars(
-                        $booking->caravan_name
-                        ?? '',
-                        ENT_QUOTES,
-                        'UTF-8'
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Start Date
-                    |--------------------------------------------------------------------------
-                    */
+                    $bookingId = htmlspecialchars($booking->invoice_id ?? '', ENT_QUOTES,'UTF-8');
+                    $caravanName = htmlspecialchars($booking->caravan_name ?? '', ENT_QUOTES,'UTF-8');
 
                     $startDate = '';
-
-
                     if (!empty($booking->start_date)) {
-
-                        $startDate = date(
-                            'd M Y',
-                            strtotime(
-                                $booking->start_date
-                            )
-                        );
+                        $startDate = date('d M Y',strtotime($booking->start_date));
                     }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | End Date
-                    |--------------------------------------------------------------------------
-                    */
 
                     $endDate = '';
-
-
                     if (!empty($booking->end_date)) {
-
-                        $endDate = date(
-                            'd M Y',
-                            strtotime(
-                                $booking->end_date
-                            )
-                        );
+                        $endDate = date('d M Y',strtotime($booking->end_date));
                     }
 
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Date Range
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (
-                        !empty($startDate) &&
-                        !empty($endDate)
-                    ) {
-
-                        $dateRange =
-                            $startDate .
-                            ' - ' .
-                            $endDate;
-
+                    if (!empty($startDate) && !empty($endDate)) {
+                        $dateRange = $startDate . ' - ' . $endDate;
                     } elseif (!empty($startDate)) {
-
-                        $dateRange =
-                            $startDate;
-
+                        $dateRange = $startDate;
                     } else {
-
-                        $dateRange =
-                            '-';
+                        $dateRange = '-';
                     }
 
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Number of Days
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (
-                        !empty($booking->no_of_days)
-                    ) {
-
-                        $days =
-                            $booking->no_of_days;
-
-                    } elseif (
-                        !empty($booking->start_date) &&
-                        !empty($booking->end_date)
-                    ) {
-
-                        $start =
-                            Carbon::parse(
-                                $booking->start_date
-                            );
-
-
-                        $end =
-                            Carbon::parse(
-                                $booking->end_date
-                            );
-
-
-                        $days =
-                            $start->diffInDays(
-                                $end
-                            ) + 1;
-
+                    if (!empty($booking->no_of_days)) {
+                        $days = $booking->no_of_days;
+                    } elseif (!empty($booking->start_date) && !empty($booking->end_date)) {
+                        $start = Carbon::parse($booking->start_date);
+                        $end = Carbon::parse($booking->end_date);
+                        $days = $start->diffInDays($end) + 1;
                     } else {
-
                         $days = 1;
                     }
 
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Amount
-                    |--------------------------------------------------------------------------
-                    */
-
-                    $amount = (float) (
-                        $booking->booking_amount
-                        ?? 0
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Build Row
-                    |--------------------------------------------------------------------------
-                    */
-
+                    $amount = (float) ($booking->booking_amount ?? 0);
                     $caravanPricing .= '
 
-                <tr>
-
-                    <td
-                        align="center"
-                        valign="middle"
-                        style="
-                            color:#000;
-                            border-right:1px solid #000;
-                            border-bottom:1px solid #000;
-                            padding:5px;
-                        "
-                    >
-                        ' . $bookingId . '
-                    </td>
-
-
-                    <td
-                        align="center"
-                        valign="middle"
-                        style="
-                            color:#000;
-                            border-right:1px solid #000;
-                            border-bottom:1px solid #000;
-                            padding:5px;
-                        "
-                    >
-                        ' . $caravanName . '
-                    </td>
-
-
-                    <td
-                        align="center"
-                        valign="middle"
-                        style="
-                            color:#000;
-                            border-right:1px solid #000;
-                            border-bottom:1px solid #000;
-                            padding:5px;
-                        "
-                    >
-                        ' .
-                        htmlspecialchars(
-                            $dateRange,
-                            ENT_QUOTES,
-                            'UTF-8'
-                        )
-                        . '
-                    </td>
-
-
-                    <td
-                        align="center"
-                        valign="middle"
-                        style="
-                            color:#000;
-                            border-right:1px solid #000;
-                            border-bottom:1px solid #000;
-                            padding:5px;
-                        "
-                    >
-                        ' . $days . '
-                    </td>
-
-
-                    <td
-                        align="right"
-                        valign="middle"
-                        style="
-                            color:#000;
-                            border-bottom:1px solid #000;
-                            padding:5px;
-                        "
-                    >
-                        ' .
-                        number_format(
-                            $amount,
-                            2
-                        )
-                        . '
-                    </td>
-
-                </tr>
-            ';
+                        <tr>
+                            <td align="center" valign="middle" style="color:#000; border-right:1px solid #000; border-bottom:1px solid #000; padding:5px;"> ' . $bookingId . '
+                            </td>
+                            <td align="center" valign="middle" style=" color:#000; border-right:1px solid #000; border-bottom:1px solid #000; padding:5px;">
+                                ' . $caravanName . '
+                            </td>
+                            <td align="center" valign="middle" style="color:#000; border-right:1px solid #000; border-bottom:1px solid #000; padding:5px;"> ' .
+                                htmlspecialchars($dateRange,ENT_QUOTES,'UTF-8')
+                                . '
+                            </td>
+                            <td align="center" valign="middle" style="color:#000;  border-right:1px solid #000; border-bottom:1px solid #000; padding:5px;">
+                                ' . $days . '
+                            </td>
+                            <td align="right" valign="middle" style="color:#000; border-bottom:1px solid #000; padding:5px;"> ' . number_format($amount,2) . '
+                            </td>
+                        </tr>
+                    ';
                 }
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Order Date
-                |--------------------------------------------------------------------------
-                */
-
-                $orderDateValue =
-                    $OrderMaster->created_at
-                    ?? $OrderMaster->created_on
-                    ?? now();
-
-
-                $orderDate = date(
-                    'd M Y h:i a',
-                    strtotime(
-                        $orderDateValue
-                    )
-                );
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Replace Template Placeholders
-                |--------------------------------------------------------------------------
-                */
-
+                $orderDateValue = $OrderMaster->created_at ?? $OrderMaster->created_on ?? now();
+                $orderDate = date('d M Y h:i a',strtotime($orderDateValue));
                 $Message = str_replace(
-
                     array(
-
                         "~otdcLogo~",
-
                         "~username~",
-
                         "~usermobile~",
-
                         "~usermail~",
-
                         "~vendorLogo~",
-
                         "~orderdate~",
-
                         "~orderdetails~",
-
                         "~ordertotal~",
-
                         "~paymentmethod~",
-
                         "~txnid~",
-
                         "~payuid~"
                     ),
-
-
                     array(
-
                         $mainLogo,
-
                         $customerName,
-
                         $customerPhone,
-
                         $customerEmail,
-
                         $companyLogo,
-
                         $orderDate,
-
                         $caravanPricing,
-
-                        number_format(
-                            $grandTotal,
-                            2
-                        ),
-
+                        number_format($grandTotal,2),
                         $paymentMethod,
-
                         $transactionId,
-
                         $paymentReference
                     ),
-
-
                     $CaravanInvoice->source
                 );
 
+                $finalHtml = html_entity_decode($Message, ENT_QUOTES,'UTF-8');
 
-                /*
-                |--------------------------------------------------------------------------
-                | Final HTML
-                |--------------------------------------------------------------------------
-                */
-
-                $finalHtml = html_entity_decode(
-                    $Message,
-                    ENT_QUOTES,
-                    'UTF-8'
-                );
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Create Documents Directory
-                |--------------------------------------------------------------------------
-                */
-
-                $directory = public_path(
-                    'documents'
-                );
-
-
+                $directory = public_path('documents');
                 if (!is_dir($directory)) {
-
-                    mkdir(
-                        $directory,
-                        0755,
-                        true
-                    );
+                    mkdir($directory,0755,true);
                 }
 
+                $invoiceNumber =!empty($OrderMaster->invoice_id) ? $OrderMaster->invoice_id : $OrderMaster->order_id;
+                $safeInvoiceNumber = preg_replace('/[^A-Za-z0-9_-]/','_',$invoiceNumber);
+                $file ='documents/Caravan_Invoice_' . $safeInvoiceNumber . '_' . time() .'.pdf';
+                $pdfname = public_path($file);
 
-                /*
-                |--------------------------------------------------------------------------
-                | PDF File Name
-                |--------------------------------------------------------------------------
-                */
-
-                $invoiceNumber =
-                    !empty(
-                    $OrderMaster->invoice_id
-                )
-                    ? $OrderMaster->invoice_id
-                    : $OrderMaster->order_id;
-
-
-                $safeInvoiceNumber = preg_replace(
-                    '/[^A-Za-z0-9_-]/',
-                    '_',
-                    $invoiceNumber
-                );
-
-
-                $file =
-                    'documents/Caravan_Invoice_' .
-                    $safeInvoiceNumber .
-                    '_' .
-                    time() .
-                    '.pdf';
-
-
-                $pdfname = public_path(
-                    $file
-                );
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Generate PDF
-                |--------------------------------------------------------------------------
-                */
-
-                /*
-        |--------------------------------------------------------------------------
-        | Generate PDF
-        |--------------------------------------------------------------------------
-        */
-
-                PDF::loadHTML(
-                    $finalHtml
-                )->save(
-                        $pdfname
-                    );
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Success Response
-                |--------------------------------------------------------------------------
-                */
-
+                PDF::loadHTML($finalHtml)->save($pdfname);
                 return response()->json([
-
                     'status' => 1,
-
-                    'message' =>
-                        'Invoice generated successfully.',
-
-                    'data' =>
-                        asset(
-                            $file
-                        )
-
+                    'message' =>'Invoice generated successfully.',
+                    'data' => asset($file)
                 ]);
 
             } catch (\Throwable $e) {
-
-
-                \Log::error(
-
-                    'Caravan Invoice Error',
-
-                    [
-
-                        'message' =>
-                            $e->getMessage(),
-
-                        'file' =>
-                            $e->getFile(),
-
-                        'line' =>
-                            $e->getLine(),
-
-                        'order_id' =>
-                            $request->orderID
-
-                    ]
-
-                );
-
-
                 return response()->json([
-
-                    'status' =>
-                        0,
-
-                    'message' =>
-                        $e->getMessage() .
-                        ' | File: ' .
-                        basename(
-                            $e->getFile()
-                        ) .
-                        ' | Line: ' .
-                        $e->getLine()
-
+                    'status' =>0,
+                    'message' => $e->getMessage() . ' | File: ' . basename($e->getFile()) . ' | Line: ' .$e->getLine()
                 ]);
             }
         }
+        elseif ($request->request_type == 'export_caravan_summary_report') {
+            $OrderMaster = DB::select($request->exportQuery);
+            $csv = "documents/caravan_order_summary_report" . time() . ".csv";
+            $csvname = public_path($csv);
+
+            $headerArr = array('Invoice Id', 'Transaction Id', 'PayU Id', 'Order Type', 'Book Though', 'Customer Name', 'Customer Email', 'Customer Phone', 'Customer Address', 'City', 'State', 'Country', 'Zipcode', 'Caravan Name','Booking Date', 'Booking Time', 'Start Date', 'Start Time', 'End Date','Discount', 'Coupon Name','Total Price', 'Status', 'Payment Method', 'Payment Status');
+            if (Auth::user()->access_type == 'superadmin') {
+                array_unshift($headerArr, "Vendor");
+            }
+            $fp = fopen($csvname, 'w');
+            fputcsv($fp, $headerArr);
+            if (!empty($OrderMaster)) {
+                foreach ($OrderMaster as $value) {
+                    $payuId = 'N/A';
+                    if (!empty($value->payment_id)) {
+                        $PaymentHistory = PaymentHistory::find($value->payment_id);
+                        $payuId = (!empty($PaymentHistory) && !empty($PaymentHistory->mihpayid)) ? $PaymentHistory->mihpayid : 'N/A';
+                    }
+                    
+                    $data['invoice_id'] = $value->invoice_id;
+                    $data['transaction_id'] = $value->transaction_id;
+                    $data['mihpayid'] = $payuId;
+                    $data['order_type'] = $value->order_type;
+                    $data['request_from'] = $value->request_from;
+                    $data['customer_name'] = $value->customer_name;
+                    $data['customer_email'] = $value->customer_email;
+                    $data['customer_phone'] = $value->customer_phone;
+                    $data['customer_address1'] = $value->customer_address1;
+                    $data['customer_city'] = $value->customer_city;
+                    $data['customer_state'] = $value->customer_state;
+                    $data['customer_country'] = $value->customer_country;
+                    $data['customer_zipcode'] = $value->customer_zipcode;
+                    $data['service_name'] = $value->service_name;
+                    $data['created_date'] = date("Y-m-d", strtotime($value->created_at));
+                    $data['created_time'] = date("h:i a", strtotime($value->created_at));
+                    $data['start_date'] = $value->start_date;
+                    $data['start_time'] = $value->start_time;
+                    $data['end_date'] = $value->end_date;
+                    $data['end_time'] = $value->end_time;
+                    $data['coupon_name'] = $value->coupon_name;
+                    $data['total_order_price'] = $value->total_order_price;
+                    $data['status'] = $value->status;
+                    $data['payment_gateway'] = $value->payment_method;
+                    $data['payment_status'] = $value->payment_status;
+
+                    fputcsv($fp, $data);
+                }
+            }
+            fclose($fp);
+            return response()->download($csvname)->deleteFileAfterSend(true);
+        }
+        elseif ($request->request_type == 'export_caravan_avaliability_report') {
+            $user = Auth::user();
+            $MasterCaravanQuery = MasterCaravan::whereNull('deleted_at');
+            if ($user->access_type == 'vendor') {
+                $vendorId = ($user->role == 2) ? $user->id : $user->vendor_id;
+                $MasterCaravanQuery->where('vendor_id', $vendorId);
+            }
+
+            $MasterCaravan = $MasterCaravanQuery->pluck('title', 'id');
+            $CaravanId = (int) $request->caravan_id;
+            if (!$MasterCaravan->has($CaravanId)) {
+                abort(403, 'You cannot access the selected caravan.');
+            }
+
+            $SelectedCaravan = MasterCaravan::where('id', $CaravanId)
+                ->whereNull('deleted_at')
+                ->first();
+            $TotalCaravan = (int) ($SelectedCaravan->quantity ?? 0);
+            $range = preg_split('/\s+-\s+/', trim($request->check_date));
+
+            if (!is_array($range) || count($range) != 2) {
+                return back()->withErrors([
+                    'check_date' => 'Please select a valid date range.'
+                ]);
+            }
+            try {
+                $startDate = Carbon::createFromFormat('d-m-Y',trim($range[0]))->startOfDay();
+                $endDate = Carbon::createFromFormat('d-m-Y',trim($range[1]))->startOfDay();
+            } catch (\Exception $e) {
+
+                return back()->withErrors([
+                    'check_date' => 'Please select a valid date range.'
+                ]);
+            }
+
+            if ($endDate->lt($startDate)) {
+                [$startDate, $endDate] = [$endDate, $startDate];
+            }
+
+            // Get Inventory Data
+            $inventoryData = CaravanMasterInventory::where('caravan_id', $CaravanId)
+                ->whereBetween('date', [
+                    $startDate->format('Y-m-d'),
+                    $endDate->format('Y-m-d')
+                ])
+                ->select('date',DB::raw('SUM(total_booked + total_blocked) as total_booked'))
+                ->groupBy('date')
+                ->get()
+                ->keyBy(function ($item) {
+                    return Carbon::parse($item->date)->format('Y-m-d');
+                });
+
+            // Create CSV
+            $csv = "documents/caravan_availability_report_" . time() . ".csv";
+            $csvname = public_path($csv);
+            if (!file_exists(dirname($csvname))) {
+                mkdir(dirname($csvname), 0755, true);
+            }
+
+            $fp = fopen($csvname, 'w');
+
+            fputcsv($fp, [
+                'Date',
+                'Total Caravan',
+                'Booked Caravan',
+                'Available Caravan'
+            ]);
+
+            $period = CarbonPeriod::create($startDate->copy(),$endDate->copy());
+            foreach ($period as $date) {
+                $formattedDate = $date->format('Y-m-d');
+                $booked = (int) ($inventoryData->get($formattedDate)->total_booked ?? 0);
+                $available = max($TotalCaravan - $booked, 0);
+                fputcsv($fp, [
+                    $date->format('d-M-Y'),
+                    $TotalCaravan,
+                    $booked,
+                    $available 
+                ]);
+            }
+            fclose($fp);
+            return response()->download($csvname)->deleteFileAfterSend(true);
+        }
+        elseif ($request->request_type == 'export_caravan_booking_report') {
+            $user = Auth::user();
+            $caravanQuery = MasterCaravan::query()
+                ->whereNull('deleted_at');
+
+            if ($user->access_type == 'vendor') {
+                $vendorId = ($user->role == 2) ? $user->id : $user->vendor_id;
+                $caravanQuery->where('vendor_id', $vendorId);
+            }
+
+            $MasterCaravan = $caravanQuery->pluck('title', 'id');
+            $caravan_id = $request->caravan_id ?? 0;
+            $report_type = $request->report_type ?? 'book_date';
+            $check_date = $request->check_date;
+
+            try {
+                $date = Carbon::createFromFormat('d-m-Y',$check_date)->format('Y-m-d');
+            } catch (\Exception $exception) {
+                return response()->json([
+                    'status' => 0,
+                    'message' => 'Please select a valid date.'
+                ], 422);
+            }
+            if (!in_array($report_type, ['book_date', 'travel_date'])) {
+                return response()->json([
+                    'status' => 0,
+                    'message' => 'Invalid report type.'
+                ], 422);
+            }
+
+            if (!empty($caravan_id) &&  (int) $caravan_id !== 0 && !$MasterCaravan->has((int) $caravan_id)) {
+                abort(403, 'You cannot access the selected caravan.');
+            }
+
+            $query = DB::table('caravan_bookings as cb')
+                ->join('master_caravans as mc', 'cb.caravan_id', '=', 'mc.id')
+                ->join('order_masters as om', 'cb.booking_id', '=', 'om.order_id')
+                ->select(
+                    'om.invoice_id',
+                    'om.order_id',
+                    'cb.created_at as booking_date',
+                    'om.customer_name',
+                    'mc.title as caravan_name',
+                    'cb.start_date',
+                    'cb.end_date',
+                    'cb.totalPrice as total_amount',
+                    'om.status'
+                )
+                ->where('om.service_type', 'caravan');
+            if ($user->access_type == 'vendor') {
+                $vendorId = ($user->role == 2) ? $user->id : $user->vendor_id;
+                $query->where('cb.vendor_id', $vendorId);
+            }
+
+            if (!empty($caravan_id) && (int) $caravan_id !== 0) {
+                $query->where('cb.caravan_id', (int) $caravan_id);
+            }
+
+            if ($report_type == 'book_date') {
+                $query->whereDate('cb.created_at', $date);
+            } else {
+                $query->whereDate('cb.start_date', '<=', $date)
+                    ->whereDate('cb.end_date', '>=', $date);
+            }
+
+            $bookings = $query
+                ->orderBy('cb.created_at', 'desc')
+                ->get();
+
+            $csv = 'documents/caravan_booking_report_' . time() . '.csv';
+            $csvname = public_path($csv);
+            if (!file_exists(dirname($csvname))) {
+                mkdir(dirname($csvname), 0755, true);
+            }
+            $fp = fopen($csvname, 'w');
+            fputcsv($fp, [
+                'Sl No',
+                'Booking Id',
+                'Booking Date',
+                'Customer Name',
+                'Caravan Name',
+                'Travel Period',
+                'Total Amount',
+                'Booking Status'
+            ]);
+
+            $slNo = 1;
+
+            foreach ($bookings as $row) {
+                $bookingDate = !empty($row->booking_date) ? Carbon::parse($row->booking_date)->format('d-m-Y')  : 'N/A';
+                $travelPeriod = 'N/A';
+
+                if (!empty($row->start_date) && !empty($row->end_date)) {
+                    $startDate = Carbon::parse($row->start_date)->format('d-m-Y');
+                    $endDate = Carbon::parse($row->end_date)->format('d-m-Y');
+                    $travelPeriod = ($startDate == $endDate) ? $startDate : $startDate . ' - ' . $endDate;
+                } elseif (!empty($row->start_date)) {
+
+                    $travelPeriod = Carbon::parse($row->start_date)->format('d-m-Y');
+                }
+
+                fputcsv($fp, [
+                    $slNo++,
+                    $row->invoice_id ?? 'N/A',
+                    $bookingDate,
+                    $row->customer_name ?? 'N/A',
+                    $row->caravan_name ?? 'N/A',
+                    $travelPeriod,
+                    number_format((float) ($row->total_amount ?? 0), 2),
+                    $row->status ?? 'N/A'
+                ]);
+            }
+
+            fclose($fp);
+
+            return response()
+                ->download($csvname)
+                ->deleteFileAfterSend(true);
+        }
+
         echo json_encode($responce);
         exit;
     }
@@ -2285,16 +1884,10 @@ class CaravanController extends Controller
         $aColumns = array('date', 'caravan_id', 'initial_quantity', 'total_available', 'total_booked', 'total_blocked');
         $sIndexColumn = "id";
         $sTable = "caravan_master_inventory";
-        /*
-         * Paging
-         */
         $sLimit = "";
         if (isset($_POST['start']) && $_POST['length'] != '-1') {
             $sLimit = "LIMIT " . intval($_POST['start']) . ", " . intval($_POST['length']);
         }
-        /*
-         * Ordering
-         */
         $sOrder = "";
         if (isset($_POST['order'])) {
             $sOrder = "ORDER BY ";
@@ -2310,12 +1903,6 @@ class CaravanController extends Controller
             }
         }
 
-        /*
-         * Filtering
-         * NOTE this does not match the built-in DataTables filtering which does it
-         * word by word on any field. It's possible to do here, but concerned about efficiency
-         * on very large tables, and MySQL's regex functionality is very limited
-         */
         $vender_id = (Auth::user()->role == 2) ? Auth::user()->id : Auth::user()->vendor_id;
         $sWhere = 'WHERE `vendor_id` = ' . $vender_id;
         if (!empty($_POST['searchValue1']) || !empty($_POST['searchValue2'])) {
@@ -2355,26 +1942,16 @@ class CaravanController extends Controller
             }
         }
 
-        /*
-         * SQL queries
-         * Get data to display
-         */
         $sQuery = "SELECT SQL_CALC_FOUND_ROWS *  FROM $sTable $sWhere $sOrder $sLimit";
-        //  echo $sQuery;exit;
         $rResult = DB::select($sQuery);
 
-        /* Data set length after filtering */
         $sQuery = "SELECT FOUND_ROWS() as totalrow";
         $aResultFilterTotal = DB::select($sQuery);
         $iFilteredTotal = $aResultFilterTotal[0]->totalrow;
-        /* Total data set length */
         $sQuery = "SELECT COUNT(`" . $sIndexColumn . "`) as countindex FROM $sTable $sWhere";
         $aResultTotal = DB::select($sQuery);
         $iTotal = $aResultTotal[0]->countindex;
 
-        /*
-         * Output
-         */
         $output = array(
             "draw" => intval($_POST['draw']),
             "recordsTotal" => $iTotal,
@@ -2386,13 +1963,12 @@ class CaravanController extends Controller
         foreach ($rResult as $aRow) {
             $row = array();
 
-
             $row[] = date("d M Y", strtotime($aRow->date));
             $row[] = $MasterCar[$aRow->caravan_id];
             $row[] = '<a href="javascript:void(0)" class="change-qty" title="Click to change quantity" data-toggle="modal" data-target="#changeQtyModal" data-available="' . $aRow->total_available . '" data-id="' . $aRow->id . '" data-qty="' . $aRow->initial_quantity . '">' . $aRow->initial_quantity . '</a>';
             $row[] = $aRow->total_available;
             $row[] = $aRow->total_booked;
-            $row[] = ($aRow->total_blocked > 0) ? '<a href="javascript:void(0)" class="release-qty" title="Click to release quantity" data-toggle="modal" data-target="#changeBlockModal" data-blocked="' . $aRow->total_blocked . '" data-id="' . $aRow->id . '">' . $aRow->total_blocked . '</a>' : $aRow->total_blocked;
+            $row[] = ($aRow->total_blocked > 0)  ? '<a href="javascript:void(0)" class="release-qty" title="Click to release quantity" data-toggle="modal" data-target="#changeBlockModal" data-blocked="' . $aRow->total_blocked . '" data-id="' . $aRow->id . '" data-date="' . $aRow->date . '">' . $aRow->total_blocked . '</a>' : $aRow->total_blocked;
 
             $output['data'][] = $row;
         }
@@ -2479,7 +2055,7 @@ class CaravanController extends Controller
          * Get data to display
          */
         $sQuery = "SELECT SQL_CALC_FOUND_ROWS date, SUM(`initial_quantity`) initial_quantity, SUM(`total_available`) total_available, SUM(`total_booked`) total_booked, SUM(`total_blocked`) total_blocked FROM $sTable $sWhere GROUP BY date $sOrder $sLimit";
-        //        echo $sQuery;exit;
+
         $rResult = DB::select($sQuery);
 
         /* Data set length after filtering */
@@ -2561,411 +2137,122 @@ class CaravanController extends Controller
 
         return view('caravan.caravan-mis-report', compact('MisData', 'MasterCaravan'));
     }
+
     public function caravanBookingReport(Request $request)
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Logged-in User
-        |--------------------------------------------------------------------------
-        */
         $user = Auth::user();
-
         if (!$user) {
             return redirect()
                 ->route('login')
-                ->with(
-                    'error',
-                    'Your session has expired. Please login again.'
-                );
+                ->with('error','Your session has expired. Please login again.');
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Caravan Dropdown
-        |--------------------------------------------------------------------------
-        */
         $caravanQuery = MasterCaravan::query()
             ->whereNull('deleted_at');
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Vendor Filter
-        |--------------------------------------------------------------------------
-        */
         if ($user->access_type == 'vendor') {
-
-            $vendorId = ($user->role == 2)
-                ? $user->id
-                : $user->vendor_id;
-
-            $caravanQuery->where(
-                'vendor_id',
-                $vendorId
-            );
+            $vendorId = ($user->role == 2) ? $user->id : $user->vendor_id;
+            $caravanQuery->where('vendor_id',$vendorId);
         }
 
 
         $MasterCaravan = $caravanQuery
-            ->orderBy(
-                'title',
-                'asc'
-            )
-            ->pluck(
-                'title',
-                'id'
-            );
+            ->orderBy('title','asc')
+            ->pluck('title','id');
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Check Whether Search Button Was Used
-        |--------------------------------------------------------------------------
-        |
-        | Initial page:
-        | today's date is displayed,
-        | but booking data is not loaded.
-        |
-        |--------------------------------------------------------------------------
-        */
         $shouldFetch = $request->has('check_date');
+        $caravan_id = $request->filled('caravan_id') ? $request->caravan_id : 0;
+        $report_type = $request->filled('report_type') ? $request->report_type : 'book_date';
+        $check_date = $request->filled('check_date') ? $request->check_date : Carbon::today()->format('d-m-Y');
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Filters
-        |--------------------------------------------------------------------------
-        */
-        $caravan_id = $request->filled('caravan_id')
-            ? $request->caravan_id
-            : 0;
-
-
-        $report_type = $request->filled('report_type')
-            ? $request->report_type
-            : 'book_date';
-
-
-        $check_date = $request->filled('check_date')
-            ? $request->check_date
-            : Carbon::today()->format('d-m-Y');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Convert Date
-        |--------------------------------------------------------------------------
-        */
         try {
-
-            $date = Carbon::createFromFormat(
-                'd-m-Y',
-                $check_date
-            )->format(
-                    'Y-m-d'
-                );
-
+            $date = Carbon::createFromFormat('d-m-Y',$check_date)->format('Y-m-d');
         } catch (\Exception $exception) {
-
             return redirect()
-                ->route(
-                    'caravan-booking-report'
-                )
+                ->route('caravan-booking-report')
                 ->withErrors([
-                    'check_date' =>
-                        'Please select a valid date.'
+                    'check_date' =>'Please select a valid date.'
                 ]);
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Caravan Booking Query
-        |--------------------------------------------------------------------------
-        |
-        | Same relationship style as Hall:
-        |
-        | caravan_bookings.booking_id
-        | =
-        | order_masters.order_id
-        |
-        |--------------------------------------------------------------------------
-        */
         $query = DB::table('caravan_bookings as cb')
-
-            ->join(
-                'master_caravans as mc',
-                'cb.caravan_id',
-                '=',
-                'mc.id'
-            )
-
-            ->join(
-                'order_masters as om',
-                'cb.booking_id',
-                '=',
-                'om.order_id'
-            )
-
+            ->join('master_caravans as mc','cb.caravan_id','=','mc.id')
+            ->join('order_masters as om','cb.booking_id','=','om.order_id')
             ->select(
-
                 'om.invoice_id',
-
                 'om.order_id',
-
                 'cb.created_at as booking_date',
-
                 'om.customer_name',
-
                 'mc.title as caravan_name',
-
                 'cb.start_date',
-
                 'cb.end_date',
-
                 'cb.totalPrice as total_amount',
-
                 'om.status',
-
                 'cb.booking_id as bookingID'
             )
+            ->where('om.service_type','caravan');
 
-            ->where(
-                'om.service_type',
-                'caravan'
-            );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Vendor Filter
-        |--------------------------------------------------------------------------
-        */
         if ($user->access_type == 'vendor') {
-
-            $vendorId = ($user->role == 2)
-                ? $user->id
-                : $user->vendor_id;
-
-            $query->where(
-                'cb.vendor_id',
-                $vendorId
-            );
+            $vendorId = ($user->role == 2) ? $user->id : $user->vendor_id;
+            $query->where('cb.vendor_id',$vendorId);
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Caravan Filter
-        |--------------------------------------------------------------------------
-        */
-        if (
-            !empty($caravan_id) &&
-            (int) $caravan_id !== 0
-        ) {
-
-            $query->where(
-                'cb.caravan_id',
-                (int) $caravan_id
-            );
+        if (!empty($caravan_id) && (int) $caravan_id !== 0) {
+            $query->where('cb.caravan_id',(int) $caravan_id);
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Date Filter
-        |--------------------------------------------------------------------------
-        */
         if ($report_type == 'book_date') {
-
-            /*
-             * Booking Date
-             */
-            $query->whereDate(
-                'cb.created_at',
-                $date
-            );
+            $query->whereDate('cb.created_at',$date);
 
         } else {
-
-            /*
-             * Travel Period
-             *
-             * Selected date falls between
-             * start_date and end_date.
-             */
             $query
-                ->whereDate(
-                    'cb.start_date',
-                    '<=',
-                    $date
-                )
-                ->whereDate(
-                    'cb.end_date',
-                    '>=',
-                    $date
-                );
+                ->whereDate('cb.start_date','<=',$date)
+                ->whereDate('cb.end_date','>=',$date);
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Fetch Data Only After Search
-        |--------------------------------------------------------------------------
-        */
         if ($shouldFetch) {
-
             $bookings = $query
-                ->orderBy(
-                    'cb.created_at',
-                    'desc'
-                )
+                ->orderBy('cb.created_at','desc')
                 ->get();
-
         } else {
-
             $bookings = collect();
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Prepare View Data
-        |--------------------------------------------------------------------------
-        */
         $CaravanBookingData = [];
 
-
         foreach ($bookings as $row) {
+            $bookingDate = !empty($row->booking_date) ? Carbon::parse($row->booking_date)->format('d-m-Y') : 'N/A';
 
-            /*
-            |--------------------------------------------------------------------------
-            | Booking Date
-            |--------------------------------------------------------------------------
-            */
-            $bookingDate = !empty(
-                $row->booking_date
-            )
-                ? Carbon::parse(
-                    $row->booking_date
-                )->format(
-                        'd-m-Y'
-                    )
-                : 'N/A';
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Travel Period
-            |--------------------------------------------------------------------------
-            */
             $travelPeriod = 'N/A';
-
-
-            if (
-                !empty($row->start_date) &&
-                !empty($row->end_date)
-            ) {
-
-                $startDate = Carbon::parse(
-                    $row->start_date
-                )->format(
-                        'd-m-Y'
-                    );
-
-
-                $endDate = Carbon::parse(
-                    $row->end_date
-                )->format(
-                        'd-m-Y'
-                    );
-
+            if (!empty($row->start_date) && !empty($row->end_date)) {
+                $startDate = Carbon::parse($row->start_date)->format('d-m-Y');
+                $endDate = Carbon::parse($row->end_date)->format('d-m-Y');
 
                 if ($startDate == $endDate) {
-
                     $travelPeriod = $startDate;
-
                 } else {
-
-                    $travelPeriod =
-                        $startDate .
-                        ' - ' .
-                        $endDate;
+                    $travelPeriod = $startDate . ' - ' . $endDate;
                 }
 
             } elseif (!empty($row->start_date)) {
-
-                $travelPeriod = Carbon::parse(
-                    $row->start_date
-                )->format(
-                        'd-m-Y'
-                    );
+                $travelPeriod = Carbon::parse($row->start_date)->format('d-m-Y');
             }
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | Final Row
-            |--------------------------------------------------------------------------
-            */
             $CaravanBookingData[] = [
-
-                'invoice_id' =>
-                    $row->invoice_id
-                    ?? 'N/A',
-
-                'order_id' =>
-                    $row->order_id
-                    ?? '',
-
-                'booking_date' =>
-                    $bookingDate,
-
-                'customer_name' =>
-                    $row->customer_name
-                    ?? 'N/A',
-
-                'caravan_name' =>
-                    $row->caravan_name
-                    ?? 'N/A',
-
-                'travel_period' =>
-                    $travelPeriod,
-
-                'total_amount' =>
-                    number_format(
-                        (float) (
-                            $row->total_amount
-                            ?? 0
-                        ),
-                        2
-                    ),
-
-                'status' =>
-                    $row->status
-                    ?? 'N/A',
-
-                /*
-                 * Used by invoice eye button
-                 */
-                'oderID' =>
-                    $row->order_id
-                    ?? '',
-
-                'link' =>
-                    1
+                'invoice_id' => $row->invoice_id ?? 'N/A',
+                'order_id' => $row->order_id ?? '',
+                'booking_date' => $bookingDate,
+                'customer_name' =>$row->customer_name ?? 'N/A',
+                'caravan_name' => $row->caravan_name ?? 'N/A',
+                'travel_period' =>$travelPeriod,
+                'total_amount' => number_format((float) ($row->total_amount ?? 0), 2),
+                'status' => $row->status ?? 'N/A',
+                'oderID' => $row->order_id ?? '',
+                'link' => 1
             ];
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Return View
-        |--------------------------------------------------------------------------
-        */
-        return view(
-            'caravan.caravan-booking-report',
+        return view('caravan.caravan-booking-report',
             compact(
                 'MasterCaravan',
                 'CaravanBookingData',
@@ -2978,135 +2265,46 @@ class CaravanController extends Controller
 
     public function caravanAvailabilityReport(Request $request)
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Get Authenticated User
-        |--------------------------------------------------------------------------
-        */
         $user = Auth::user();
-
         if (!$user) {
             return redirect()
                 ->route('login')
-                ->with(
-                    'error',
-                    'Your session has expired. Please login again.'
-                );
+                ->with('error','Your session has expired. Please login again.');
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Get Accessible Caravans
-        |--------------------------------------------------------------------------
-        */
-        $caravanQuery = MasterCaravan::query()
-            ->whereNull('deleted_at');
+        $caravanQuery = MasterCaravan::query() ->whereNull('deleted_at');
 
         if ($user->access_type == 'vendor') {
-
-            $vendorId = (
-                $user->role == 2
-            )
-                ? $user->id
-                : $user->vendor_id;
-
-            $caravanQuery->where(
-                'vendor_id',
-                $vendorId
-            );
+            $vendorId = ($user->role == 2) ? $user->id : $user->vendor_id;
+            $caravanQuery->where('vendor_id',$vendorId);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Caravan Dropdown
-        |--------------------------------------------------------------------------
-        */
         $MasterCaravan = $caravanQuery
-            ->orderBy(
-                'title',
-                'asc'
-            )
-            ->pluck(
-                'title',
-                'id'
-            );
+            ->orderBy('title','asc')
+            ->pluck('title','id');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Selected Caravan
-        |--------------------------------------------------------------------------
-        */
-        $CaravanId = $request->get(
-            'caravan_id'
-        );
+        $CaravanId = $request->get('caravan_id');
+        if (empty($CaravanId) && $MasterCaravan->isNotEmpty()) {
 
-        if (
-            empty($CaravanId) &&
-            $MasterCaravan->isNotEmpty()
-        ) {
-
-            $CaravanId = $MasterCaravan
-                ->keys()
-                ->first();
+            $CaravanId = $MasterCaravan ->keys() ->first();
         }
 
-        $CaravanId = !empty($CaravanId)
-            ? (int) $CaravanId
-            : null;
+        $CaravanId = !empty($CaravanId) ? (int) $CaravanId : null;
 
-        /*
-        |--------------------------------------------------------------------------
-        | Check Access
-        |--------------------------------------------------------------------------
-        */
-        if (
-            $CaravanId !== null &&
-            !$MasterCaravan->has(
-                $CaravanId
-            )
-        ) {
-
-            abort(
-                403,
-                'You cannot access the selected caravan.'
-            );
+        if ($CaravanId !== null && !$MasterCaravan->has($CaravanId)) {
+            abort(403,'You cannot access the selected caravan.');
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Caravan Details
-        |--------------------------------------------------------------------------
-        */
         $SelectedCaravan = null;
 
         if ($CaravanId) {
-
-            $SelectedCaravan = MasterCaravan::where(
-                'id',
-                $CaravanId
-            )
-                ->whereNull(
-                    'deleted_at'
-                )
+            $SelectedCaravan = MasterCaravan::where('id',$CaravanId)
+                ->whereNull('deleted_at')
                 ->first();
         }
 
-        $CaravanName = $SelectedCaravan
-            ? $SelectedCaravan->title
-            : '';
-
-        $TotalCaravan = $SelectedCaravan
-            ? (int) (
-                $SelectedCaravan->quantity
-                ?? 0
-            )
-            : 0;
-
-        /*
-        |--------------------------------------------------------------------------
-        | Default Date Range
-        |--------------------------------------------------------------------------
-        */
+        $CaravanName = $SelectedCaravan ? $SelectedCaravan->title : '';
+        $TotalCaravan = $SelectedCaravan ? (int) ($SelectedCaravan->quantity ?? 0) : 0;
         $startDate = Carbon::today()
             ->startOfDay();
 
@@ -3114,175 +2312,1116 @@ class CaravanController extends Controller
             ->addDays(30)
             ->endOfDay();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Selected Date Range
-        |--------------------------------------------------------------------------
-        */
         if ($request->filled('check_date')) {
-
             try {
-
-                $range = preg_split(
-                    '/\s+-\s+/',
-                    trim(
-                        $request->get(
-                            'check_date'
-                        )
-                    )
-                );
-
-                if (
-                    !is_array($range) ||
-                    count($range) != 2
-                ) {
-
+                $range = preg_split('/\s+-\s+/',trim($request->get('check_date')));
+                if (!is_array($range) || count($range) != 2) {
                     throw new \Exception(
                         'Invalid date range'
                     );
                 }
 
-                $startDate = Carbon::createFromFormat(
-                    'd-m-Y',
-                    trim($range[0])
-                )->startOfDay();
-
-                $endDate = Carbon::createFromFormat(
-                    'd-m-Y',
-                    trim($range[1])
-                )->endOfDay();
+                $startDate = Carbon::createFromFormat('d-m-Y',trim($range[0]))->startOfDay();
+                $endDate = Carbon::createFromFormat('d-m-Y',trim($range[1]))->endOfDay();
 
             } catch (\Exception $exception) {
-
                 return redirect()
-                    ->route(
-                        'caravan-availability-report'
-                    )
+                    ->route('caravan-availability-report')
                     ->withErrors([
-                        'check_date' =>
-                            'Please select a valid date range.'
+                        'check_date' =>'Please select a valid date range.'
                     ]);
             }
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Reverse Date Range If Needed
-        |--------------------------------------------------------------------------
-        */
-        if (
-            $endDate->lt(
-                $startDate
-            )
-        ) {
-
-            $oldStartDate =
-                $startDate->copy();
-
-            $startDate =
-                $endDate
-                    ->copy()
-                    ->startOfDay();
-
-            $endDate =
-                $oldStartDate
-                    ->copy()
-                    ->endOfDay();
+        if ($endDate->lt($startDate)) {
+            $oldStartDate = $startDate->copy();
+            $startDate =$endDate ->copy()->startOfDay();
+            $endDate = $oldStartDate->copy()->endOfDay();
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Prepare Caravan Availability Data
-        |--------------------------------------------------------------------------
-        |
-        | Booked is currently 0.
-        |
-        | Once CaravanBooking fields are confirmed,
-        | booked data can be calculated here.
-        |
-        |--------------------------------------------------------------------------
-        */
         $CaravanReportData = [];
 
         $period = CarbonPeriod::create(
-
-            $startDate
-                ->copy()
-                ->startOfDay(),
-
-            $endDate
-                ->copy()
-                ->startOfDay()
+            $startDate->copy()->startOfDay(),
+            $endDate->copy()->startOfDay()
         );
 
+        $inventoryData = CaravanMasterInventory::where('caravan_id', $CaravanId)
+            ->whereBetween('date', [
+                $startDate->format('Y-m-d'),
+                $endDate->format('Y-m-d')
+            ])
+            ->select('date',DB::raw('SUM(total_booked + total_blocked) as total_booked'))
+            ->groupBy('date')
+            ->get()
+            ->keyBy(function ($item) {
+                return Carbon::parse($item->date)->format('Y-m-d');
+            });
+
         foreach ($period as $date) {
-
-            /*
-             * TODO:
-             * Replace with actual booking count.
-             */
-            $booked = 0;
-
-            $available =
-                max(
-                    $TotalCaravan -
-                    $booked,
-                    0
-                );
-
+            $formattedDate = $date->format('Y-m-d');
+            $booked = (int) ($inventoryData->get($formattedDate)->total_booked ?? 0);
+            $available = max($TotalCaravan - $booked, 0);
             $CaravanReportData[] = [
-
-                'date' =>
-                    $date->format(
-                        'Y-m-d'
-                    ),
-
-                'display_date' =>
-                    $date->format(
-                        'd-M-Y'
-                    ),
-
-                'booked' =>
-                    $booked,
-
-                'total' =>
-                    $TotalCaravan,
-
-                'available' =>
-                    $available
+                'date' => $formattedDate,
+                'display_date' => $date->format('d-M-Y'),
+                'booked' => $booked,
+                'total' => $TotalCaravan,
+                'available' => $available
             ];
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Return View
-        |--------------------------------------------------------------------------
-        */
-        return view(
-            'caravan.caravan-availability-report',
+        return view('caravan.caravan-availability-report',
             [
-                'MasterCaravan' =>
-                    $MasterCaravan,
-
-                'CaravanId' =>
-                    $CaravanId,
-
-                'CaravanName' =>
-                    $CaravanName,
-
-                'CaravanReportData' =>
-                    $CaravanReportData,
-
-                'start_date' =>
-                    $startDate->format(
-                        'Y-m-d'
-                    ),
-
-                'end_date' =>
-                    $endDate->format(
-                        'Y-m-d'
-                    )
+                'MasterCaravan' =>$MasterCaravan,
+                'CaravanId' =>$CaravanId,
+                'CaravanName' =>$CaravanName,
+                'CaravanReportData' =>$CaravanReportData,
+                'start_date' =>$startDate->format('Y-m-d'),
+                'end_date' =>$endDate->format('Y-m-d')
             ]
         );
+    }
+
+    public function caravanOrders()
+    {
+        if (!(parent::checkViewPrivilege(30))) {
+            Session::flash('success', 'You are not autherised to view this page.');
+            return redirect()->back();
+        }
+        $vender_id = (Auth::user()->role == 2) ? Auth::user()->id : Auth::user()->vendor_id;
+        $Vendors = User::where('role', '2')->pluck('company', 'id');
+        $AgentData = User::where(['access_type' => 'agent', 'role' => 3, 'vendor_id' => $vender_id])->pluck('first_name', 'id');
+        $Agents = json_encode($AgentData);
+
+        return view('caravan.caravan-orders', compact('Vendors', 'Agents'));
+    }
+
+    public function getCaravanOrders(Request $request)
+    {
+
+        if (Auth::user()->access_type == 'superadmin') {
+            $aColumns = array('vendor_name', 'service_name', 'customer_name', 'customer_phone', 'created_at', 'start_date', 'days_for_guide', 'order_type', 'invoice_id', 'status', 'total_order_price', 'payment_method', 'payment_status', 'transaction_id', 'id', 'end_date', 'customer_email');
+        } else {
+            $aColumns = array('service_name', 'customer_name', 'customer_phone', 'created_at', 'start_date', 'days_for_guide', 'order_type', 'invoice_id', 'status', 'total_order_price', 'payment_method', 'payment_status', 'transaction_id', 'id', 'end_date', 'customer_email');
+        }
+
+        $sIndexColumn = "id";
+        $sTable = "order_masters";
+        /*
+         * Paging
+         */
+        $sLimit = "";
+        if (isset($_POST['start']) && $_POST['length'] != '-1') {
+            $sLimit = "LIMIT " . intval($_POST['start']) . ", " . intval($_POST['length']);
+        }
+        /*
+         * Ordering
+         */
+        $sOrder = " ORDER BY created_at DESC ";
+        if (isset($_POST['order'])) {
+            $sOrder = "ORDER BY ";
+            for ($i = 0; $i < intval(count($_POST['order'])); $i++) {
+                if ($_POST['columns'][$_POST['order'][$i]['column']]['orderable'] == "true") {
+                    $sOrder .= "`" . $aColumns[intval($_POST['order'][$i]['column'])] . "` " .
+                        ($_POST['order'][$i]['dir'] === 'asc' ? 'asc' : 'desc') . ", ";
+                }
+            }
+            $sOrder = substr_replace($sOrder, "", -2);
+            if ($sOrder == "ORDER BY") {
+                $sOrder = "";
+            }
+        }
+        /*
+         * Filtering
+         * NOTE this does not match the built-in DataTables filtering which does it
+         * word by word on any field. It's possible to do here, but concerned about efficiency
+         * on very large tables, and MySQL's regex functionality is very limited
+         */
+        $vendor_condtition = '';
+        if (Auth::user()->access_type == 'vendor') {
+            $vender_id = (Auth::user()->role == 2) ? Auth::user()->id : Auth::user()->vendor_id;
+            $vendor_condtition = ' AND vendor_id = ' . $vender_id;
+            if (Auth::user()->user_role == 'agent_staff') {
+                $vendor_condtition .= ' AND customer_id = "' . Auth::user()->id . '" ';
+            }
+        }
+        $sWhere = 'WHERE 1 ' . $vendor_condtition . ' AND service_type = "caravan"';
+        $searchColumns = array('service_name', 'invoice_id', 'transaction_id', 'created_at', 'start_date', 'end_date', 'customer_id', 'request_from');
+        if (!empty($_POST['searchValue1']) || !empty($_POST['searchValue2']) || (!empty($_POST['searchValue3']) && !empty($_POST['searchValue4'])) || (!empty($_POST['searchValue6']) && !empty($_POST['searchValue7']))) {
+            $condition1 = $condition2 = $condition3 = $condition4 = '';
+            if (!empty($_POST['searchValue1'])) {
+                $_POST['searchValue1'] = parent::cleanString($_POST['searchValue1']);
+                if ($_POST['searchValue1'] == 'all') {
+                    $condition1 .= ' AND status != "partially-cancelled"';
+                } else {
+                    if ($_POST['searchValue1'] == 'cancelled') {
+                        $condition1 .= ' AND ((status = "' . $_POST['searchValue1'] . '" OR status = "partially-cancelled") AND payment_status = "success")';
+                    } else {
+                        $condition1 .= ' AND status = "' . $_POST['searchValue1'] . '"';
+                    }
+                }
+            }
+            if (!empty($_POST['searchValue2'])) {
+                $_POST['searchValue2'] = parent::cleanString($_POST['searchValue2']);
+                $condition2 .= ' AND vendor_id = "' . $_POST['searchValue2'] . '"';
+            }
+            if (!empty($_POST['searchValue3']) && !empty($_POST['searchValue4'])) {
+                if (in_array($_POST['searchValue3'], $searchColumns)) {
+                    if ($_POST['searchValue3'] == 'created_at' || $_POST['searchValue3'] == 'start_date' || $_POST['searchValue3'] == 'end_date') {
+                        $dates = explode(' - ', $_POST['searchValue4']);
+                        $start = date('Y-m-d', strtotime($dates[0]));
+                        $end = date('Y-m-d', strtotime($dates[1]));
+                        $condition3 .= ' AND ' . $_POST['searchValue3'] . ' BETWEEN "' . $start . ' 00:00:00" AND "' . $end . ' 23:59:59"';
+                    } else {
+                        $condition3 .= ' AND ' . $_POST['searchValue3'] . ' LIKE "' . $_POST['searchValue4'] . '"';
+                    }
+                }
+            }
+            if (!empty($_POST['searchValue6']) && !empty($_POST['searchValue7'])) {
+                $_POST['searchValue6'] = parent::cleanString($_POST['searchValue6']);
+                $condition4 .= ' AND (service_name_id like "' . $_POST['searchValue6'] . '") AND start_date <= "' . date("Y-m-d", strtotime($_POST['searchValue7'])) . '" AND end_date >= "' . date("Y-m-d", strtotime($_POST['searchValue7'])) . '"';
+            }
+            $sWhere .= $condition1 . $condition2 . $condition3 . $condition4;
+        }
+
+        if (isset($_POST['search']['value']) && $_POST['search']['value'] != "") {
+            $sWhere .= " AND (";
+            for ($i = 0; $i < count($aColumns); $i++) {
+                $sWhere .= "`" . $aColumns[$i] . "` LIKE '%" . $_POST['search']['value'] . "%' OR ";
+            }
+            $sWhere = substr_replace($sWhere, "", -3);
+            $sWhere .= ')';
+        }
+        /* Individual column filtering */
+        for ($i = 0; $i < count($aColumns); $i++) {
+            if (isset($_POST['bSearchable_' . $i]) && $_POST['bSearchable_' . $i] == "true" && $_POST['sSearch_' . $i] != '') {
+                if ($sWhere == "") {
+                    $sWhere = "WHERE ";
+                } else {
+                    $sWhere .= " AND ";
+                }
+                $sWhere .= "`" . $aColumns[$i] . "` LIKE '%" . $_POST['sSearch_' . $i] . "%' ";
+            }
+        }
+
+       
+        $exQuery = "SELECT * FROM $sTable $sWhere $sOrder";
+        $sQuery = "SELECT SQL_CALC_FOUND_ROWS * FROM   $sTable $sWhere $sOrder $sLimit";
+        $rResult = DB::select($sQuery);
+
+        /* Data set length after filtering */
+        $sQuery = "SELECT FOUND_ROWS() as totalrow";
+        $aResultFilterTotal = DB::select($sQuery);
+        $iFilteredTotal = $aResultFilterTotal[0]->totalrow;
+        /* Total data set length */
+        $sQuery = "SELECT COUNT(`" . $sIndexColumn . "`) as countindex FROM $sTable $sWhere";
+        $aResultTotal = DB::select($sQuery);
+        $iTotal = $aResultTotal[0]->countindex;
+
+        /*
+         * Output
+         */
+        $output = array(
+            "draw" => intval($_POST['draw']),
+            "recordsTotal" => $iTotal,
+            "recordsFiltered" => $iFilteredTotal,
+            "data" => array()
+        );
+
+        foreach ($rResult as $aRow) {
+            $row = array();
+            $day_break = json_decode($aRow->room_request, 1);
+            $cancel_option = $cancel_option_policy = ''; 
+            if ($aRow->status == 'completed' && $aRow->payment_status == 'success' && $aRow->start_date >= date("Y-m-d")) {
+                $cancel_option = '<li><a href="javascript:void(0);" class="cancel_booking" data-status="' . $aRow->status . '" data-id="' . $aRow->id . '" data-amount="' . $aRow->total_order_price . '">Cancel Booking (Refund full)</a></li>';
+                $cancel_option_policy = '<li><a href="javascript:void(0);" class="cancel_booking_policy" data-status="' . $aRow->status . '" data-id="' . $aRow->id . '" data-toggle="modal" data-target="#cancelPolicyModal">Cancel Booking (Refund As policy)</a></li>';
+            } elseif ($aRow->status == 'pending' && $aRow->order_type == 'offline' && $aRow->payment_gateway == 'hdfc' && ($aRow->offline_link_expiry < date("Y-m-d H:i:s") ||  $aRow->start_date <= date("Y-m-d"))) {
+                $cancel_option = '<li><a href="javascript:void(0);" class="cancel_booking" data-status="' . $aRow->status . '" data-id="' . $aRow->id . '">Cancel Booking</a></li>';
+            }
+            $date = 'Start : ' . date("M d Y h:i a", strtotime($aRow->start_date . ' ' . $aRow->start_time)) . '<br>End : ' . date("M d Y h:i a", strtotime($aRow->end_date . ' ' . $aRow->end_time));
+
+            if (Auth::user()->access_type == 'superadmin') {
+                $row[] = $aRow->vendor_name;
+            }
+            $row[] = $aRow->service_name;
+            $row[] = $aRow->customer_name;
+            $row[] = $aRow->customer_phone;
+            $row[] = date("d M Y h:i a", strtotime($aRow->created_at));
+            $row[] = $date;
+            $row[] = (count($day_break) > 1) ? '<a href="javascript:void(0);" data-toggle="modal" data-target="#orderDetailsModal" class="order_details" data-id="' . $aRow->id . '">' . count($day_break) . '</a>' : count($day_break);
+            $row[] = ($aRow->days_for_guide > 0) ? $aRow->days_for_guide . ' days' : 'N/A';
+            $row[] = $aRow->order_type;
+            $row[] = $aRow->invoice_id;
+            $row[] = $aRow->status;
+            $row[] = $aRow->total_order_price;
+            $row[] = $aRow->payment_method;
+            $row[] = $aRow->payment_status;
+            $row[] = !empty($aRow->transaction_id) ? $aRow->transaction_id : "N/A";
+            $row[] = '<div class="btn-group">
+                <button aria-expanded="false" data-toggle="dropdown" class="btn btn-info btn-xs btn-outline dropdown-toggle waves-effect waves-light" type="button">Action <span class="caret"></span></button>
+                <ul role="menu" class="dropdown-menu">
+                    <li><a href="javascript:void(0);" data-toggle="modal" data-target="#orderDetailsModal" class="order_details" data-id="' . $aRow->id . '">Order Details</a></li>
+                    <li><a href="javascript:void(0);" class="user_details" data-toggle="modal" data-target="#userDetailsModal" data-id="' . $aRow->id . '">User Details</a></li>
+                    ' . $cancel_option . $cancel_option_policy . '
+                </ul>
+            </div>';
+            $output['data'][] = $row;
+        }
+        $output['exportQuery'] = $exQuery;
+
+        echo json_encode($output);
+        exit;
+    }
+
+    public function caravanOfflineOrder() {
+        if (!(parent::checkViewPrivilege(58))) {
+            Session::flash('success', 'You are not autherised to view this page.');
+            return redirect()->back();
+        }
+        $vender_id = (Auth::user()->role == 2) ? Auth::user()->id : Auth::user()->vendor_id;
+        $MasterCaravan = MasterCaravan::where('status', 'publish')->where('vendor_id', $vender_id)->orderBy('title', 'ASC')->pluck('title', 'id');
+        $CountryData = Country::pluck('name', 'id');
+        $CityData = City::where(['state_id' => '4013'])->pluck('name', 'id')->toArray();
+        $CityDetail = array_values($CityData);
+
+        return view('caravan.caravan-offline-order', compact('MasterCaravan', 'CityDetail', 'CountryData'));
+    }
+
+    public function createCaravanOrder(Request $request)
+    {
+        if (!(parent::checkWritePrivilege(58))) {
+            Session::flash('success', 'You are not authorised to do this operation.');
+            return redirect()->back();
+        }
+
+        $MasterCar = $CarDetails = MasterCaravan::find($request->service_name_id);
+
+        if (empty($CarDetails)) {
+            Session::flash('success', 'Caravan not found.');
+            return Redirect::to('caravan-offline-order');
+        }
+
+        $state = explode('~', $request->customer_state);
+        $country = explode('~', $request->customer_country);
+
+        $service_details = json_decode($request->room_request, true);
+
+        if (empty($service_details) || !is_array($service_details)) {
+            Session::flash('success', 'Invalid booking details.');
+            return Redirect::to('caravan-offline-order');
+        }
+
+        $bookFlag = 1;
+        $quantity_array = [];
+        $route_map = [];
+        $inventoryDates = [];
+
+        $pickup_address = $service_details[0]['pickup_point'];
+
+        $startDateTime = new DateTime($service_details[0]['date']['startDate']);
+        $start_date = $startDateTime->format('Y-m-d');
+        $start_time = $startDateTime->format('H:i:s');
+
+        $end_data = end($service_details);
+
+        $endDateTime = new DateTime($end_data['date']['endDate']);
+        $end_date = $endDateTime->format('Y-m-d');
+        $end_time = $endDateTime->format('H:i:s');
+
+        $drop_city = $end_data['drop_city'];
+
+        $BlockedVehicle = BlockedCaravan::where('caravan_id', $CarDetails->id)
+            ->whereBetween('block_date', [$start_date, $end_date])
+            ->get();
+
+        if ($BlockedVehicle->isNotEmpty()) {
+            Session::flash('success','Unable to create order. Sorry!, the vehicle is not available for these dates. Please change the date and try again.');
+
+            return Redirect::to('caravan-offline-order');
+        }
+
+        $dailyPrice = (float) $CarDetails->price_per_day;
+        $serviceQuantity = max(1, (int) $request->service_quantity);
+
+        $total_service_price = 0;
+        $total_travel_hour = 0;
+        $travel_distance = 0;
+
+        $rental_breakdown = json_decode($request->rental_breakdown, true);
+
+        if (!is_array($rental_breakdown)) {
+            $rental_breakdown = [];
+        }
+
+        foreach ($service_details as $index => $val) {
+            $routeStart = new DateTime($val['date']['startDate']);
+            $routeEnd = new DateTime($val['date']['endDate']);
+
+            if ($routeEnd <= $routeStart) {
+                Session::flash('success', 'End date and time must be after start date and time.');
+                return Redirect::to('caravan-offline-order');
+            }
+
+            $durationSeconds = $routeEnd->getTimestamp() - $routeStart->getTimestamp();
+            $billableDays = max(1, (int) ceil($durationSeconds / 86400));
+            $routePrice = $dailyPrice * $billableDays * $serviceQuantity;
+            $total_service_price += $routePrice;
+            $total_travel_hour += ($durationSeconds / 3600);
+            $routeDistance = isset($val['day_km']) ? (float) $val['day_km'] : 0;
+
+            $travel_distance += $routeDistance;
+
+            $route_map[] = [
+                'dropPointCity' => $val['drop_city'],
+                'dropPonitDetails' => $val['drop_point']
+            ];
+
+            if (isset($rental_breakdown[$index])) {
+                $rental_breakdown[$index]['total_days'] = $billableDays;
+                $rental_breakdown[$index]['totalPrice'] = $routePrice;
+                $rental_breakdown[$index]['daily_price'] = $dailyPrice;
+                $rental_breakdown[$index]['distance_price'] = 0;
+                $rental_breakdown[$index]['halt_price'] = 0;
+            }
+
+            $inventoryDate = clone $routeStart;
+            $lastInventoryDate = clone $routeEnd;
+
+            while ($inventoryDate->format('Y-m-d') <= $lastInventoryDate->format('Y-m-d')) {
+                $dateKey = $inventoryDate->format('Y-m-d');
+                $inventoryDates[$dateKey] = $dateKey;
+                $inventoryDate->modify('+1 day');
+            }
+        }
+
+
+        foreach ($inventoryDates as $checkDate) {
+            $MasterInventory = CaravanMasterInventory::where([
+                'date' => $checkDate,
+                'caravan_id' => $MasterCar->id
+            ])->first();
+
+            if (empty($MasterInventory) || $MasterInventory->total_available < 1) {
+                $bookFlag = 0;
+                $quantity_array[] = date('d-m-Y', strtotime($checkDate));
+            }
+        }
+
+        if ($bookFlag == 0) {
+            Session::flash('success','Unable to create order. Sorry!, the vehicle is not available on date ' . implode(', ', $quantity_array) .'. Please change date and try again.');
+            return Redirect::to('caravan-offline-order');
+        }
+
+        $coupon_percent = 0;
+        $coupon_amt = 0;
+
+        $coupons = Coupon::where(['service_type' => 'caravan','coupon_code' => $request->coupon_code])
+            ->where('start_date', '<=', $start_date)
+            ->where('end_date', '>=', $start_date)
+            ->first();
+
+        if (!empty($coupons)) {
+            $coupon_percent = (float) $coupons->coupon_amount;
+            $coupon_amt = ceil($total_service_price * ($coupon_percent / 100));
+        }
+
+        $coupon_amt = min($coupon_amt, $total_service_price);
+        $total_order_price = max(0, $total_service_price - $coupon_amt);
+
+        $vendor_id = (Auth::user()->role == 2) ? Auth::user()->id : Auth::user()->vendor_id;
+        $VendorData = User::find($vendor_id);
+
+        if (empty($VendorData)) {
+            Session::flash('success', 'Vendor details not found.');
+            return Redirect::to('caravan-offline-order');
+        }
+
+        $lastIdData = OrderMaster::orderBy('id', 'desc')->first();
+        $lastId = !empty($lastIdData) ? $lastIdData->id + 1 : 1;
+        $booking_id = 'OT-' . time() . '-' . $vendor_id . '-' . $lastId;
+
+
+        $userId = null;
+        if (Auth::user()->user_role == 'agent_staff') {
+            $userId = Auth::user()->id;
+        } else {
+            $UserDetails = User::where('email', $request->customer_email)
+                ->orWhere('phone', $request->customer_phone)
+                ->first();
+            if (!empty($UserDetails)) {
+                $userId = $UserDetails->id;
+            } else {
+                $NewUser = new User([
+                    'email' => $request->customer_email,
+                    'password' => bcrypt(rand(10000000, 99999999)),
+                    'first_name' => $request->customer_name,
+                    'phone' => $request->customer_phone,
+                    'pincode' => $request->zipcode,
+                    'address' => $request->customer_address1,
+                    'address2' => $request->address2,
+                    'country' => $country[1] ?? null,
+                    'state' => $state[1] ?? null,
+                    'city' => $request->customer_city,
+                    'vendor_id' => 0,
+                    'role' => 4,
+                    'access_type' => 'customer',
+                    'login_type' => 'email',
+                    'status' => 1,
+                    'create_account_approval' => 0
+                ]);
+                if ($NewUser->save()) {
+                    $userId = $NewUser->id;
+                }
+            }
+        }
+
+        $LastOrder = OrderMaster::select(DB::raw('count(id) as totOrder'))
+            ->where('service_type', 'caravan')
+            ->where('status', '!=', 'partially-cancelled')
+            ->first();
+
+        if ($LastOrder->totOrder > 0) {
+            $LastInvoiceId = (int) $LastOrder->totOrder + 1;
+            $invoice_id = date('dmY') . 'R00' . $LastInvoiceId;
+        } else {
+            $invoice_id = date('dmY') . 'R001';
+        }
+
+
+        $status = ($request->payment_gateway == 'cash' || $request->payment_gateway == 'cheque') ? 'completed' : 'pending';
+        $payment_status = ($request->payment_gateway == 'cash' || $request->payment_gateway == 'cheque') ? 'success' : 'pending';
+
+        $payment_method = ($request->payment_gateway == 'cash' || $request->payment_gateway == 'cheque') ? 'cash' : '';
+        $Paytm_Mid = '';
+        $split_status = 0;
+
+        if ($request->payment_gateway == 'paytm') {
+            $Paytm_Mid = $CarDetails->paytm_mid;
+            $split_status = 1;
+        } elseif ($request->payment_gateway == 'hdfc') {
+            $Paytm_Mid = $CarDetails->hdfc_mid;
+            $split_status = 0;
+        }
+
+        $admin_amount = 0;
+        $vendor_amount = 0;
+
+        $admin_percent = (float) $VendorData->admin_commission;
+
+        if (!empty($Paytm_Mid) && $admin_percent > 0) {
+            $vendor_amount = $total_order_price - ceil($total_order_price * ($admin_percent / 100));
+            $admin_amount = $total_order_price - $vendor_amount;
+        } else {
+            $admin_amount = $total_order_price;
+            $vendor_amount = 0;
+        }
+
+        $order_type = (Auth::user()->user_role == 'agent_staff') ? Auth::user()->first_name : 'offline';
+
+        $OrderMaster = new OrderMaster([
+            'order_id' => $booking_id,
+            'invoice_id' => $invoice_id,
+            'vendor_id' => $vendor_id,
+            'vendor_name' => $VendorData->company,
+            'order_type' => $order_type,
+            'customer_id' => $userId,
+            'customer_name' => trim($request->customer_name),
+            'customer_email' => trim($request->customer_email),
+            'customer_phone' => trim($request->customer_phone),
+            'customer_address1' => trim($request->customer_address1),
+            'customer_city' => trim($request->customer_city),
+            'customer_state' => trim($state[0]),
+            'customer_zipcode' => trim($request->customer_zipcode),
+            'customer_country' => trim($country[0]),
+            'book_naration' => addslashes(trim($request->book_naration)),
+            'service_type' => 'caravan',
+            'service_name' => $MasterCar->title,
+            'service_name_id' => $MasterCar->id,
+            'service_city' => $MasterCar->city,
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+            'start_time' => $start_time,
+            'end_time' => $end_time,
+            'room_request' => $request->room_request,
+            'service_quantity' => $serviceQuantity,
+            'pickup_address' => $pickup_address,
+            'drop_location' => $drop_city,
+            'travel_route' => json_encode($route_map),
+            'travel_distance' => $travel_distance,
+            'travel_hour' => $total_travel_hour,
+            'rental_breakdown' => json_encode($rental_breakdown),
+            'total_service_price' => $total_service_price,
+            'sub_total_price' => 0,
+            'coupon_name' => $request->coupon_name,
+            'coupon_code' => $request->coupon_code,
+            'coupon_amount' => $coupon_amt,
+            'tax_percentage' => 0,
+            'tax_amount' => 0,
+            'service_charge' => 0,
+            'total_order_price' => $total_order_price,
+            'status' => $status,
+            'payment_gateway' => $request->payment_gateway,
+            'payment_method' => $payment_method,
+            'split_initiate_status' => $split_status,
+            'vendor_amount' => $vendor_amount,
+            'payment_status' => $payment_status,
+            'request_from' => 'web'
+        ]);
+
+        if (!$OrderMaster->save()) {
+            Session::flash('success', 'Unable to create order.');
+            return Redirect::to('caravan-offline-order');
+        }
+
+        $OrderMasterId = $OrderMaster->id;
+        $OrderMasterNew = OrderMaster::find($OrderMasterId);
+
+        if ($request->payment_gateway == 'cash' || $request->payment_gateway == 'cheque') {
+            require_once public_path('QrCode/generateQrCode.php');
+            $QrCodeData = [
+                'invoiceId' => $OrderMasterNew->invoice_id,
+                'orderId' => $OrderMasterNew->order_id,
+                'txnId' => $OrderMasterNew->transaction_id,
+                'serviceType' => $OrderMasterNew->service_type
+            ];
+
+            $QrCode = generateQrCode(json_encode($QrCodeData));
+            $OrderMasterNew->qr_code = $QrCode;
+            $OrderMasterNew->qr_verified = 0;
+        }
+
+        require_once public_path('paytm_lib/config_paytm.php');
+
+        if ($request->payment_gateway == 'hdfc') {
+
+            $PropertyAccount = PropertyAccount::where([
+                'service_type' => 'caravan',
+                'service_id' => $OrderMasterNew->service_name_id
+            ])->first();
+
+            if (!empty($PropertyAccount) && PAYTM_ENVIRONMENT == 'PROD') {
+                $HDFC_KEY = $PropertyAccount->hdfc_key;
+                $HDFC_SALT = $PropertyAccount->hdfc_salt;
+                $MERCHANT_ID = $PropertyAccount->hdfc_mid;
+            }
+            if (empty($HDFC_KEY) || empty($HDFC_SALT) || empty($MERCHANT_ID)) {
+                OrderMaster::find($OrderMasterId)->delete();
+                Session::flash('success','HDFC payment configuration is missing. Please contact the administrator.');
+                return Redirect::to('caravan-offline-order');
+            }
+
+            $txn_id = 'TXN' . time() . rand(10000, 99999999);
+            $command = 'create_invoice';
+            $var1_arr = [
+                'amount' => $OrderMasterNew->total_order_price,
+                'txnid' => $txn_id,
+                'productinfo' => parent::cleanString($OrderMasterNew->service_name),
+                'firstname' => $OrderMasterNew->customer_name,
+                'email' => $OrderMasterNew->customer_email,
+                'phone' => $OrderMasterNew->customer_phone,
+                'address1' => parent::cleanString($OrderMasterNew->customer_address1),
+                'city' => parent::cleanString($OrderMasterNew->customer_city),
+                'state' => parent::cleanString($OrderMasterNew->customer_state),
+                'country' => parent::cleanString($OrderMasterNew->customer_country),
+                'zipcode' => parent::cleanString($OrderMasterNew->customer_zipcode),
+                'validation_period' => 30,
+                'send_email_now' => '1',
+                'send_sms' => '1',
+                'time_unit' => 'M'
+            ];
+
+            $var1 = json_encode($var1_arr);
+            $hash_str = $HDFC_KEY . '|' . $command . '|' . $var1 . '|' . $HDFC_SALT;
+            $hash = strtolower(hash('sha512', $hash_str));
+
+            $r = [
+                'key' => $HDFC_KEY,
+                'hash' => $hash,
+                'command' => $command,
+                'var1' => $var1
+            ];
+
+            $qs = http_build_query($r);
+            $wsUrl = VERIFY_URL;
+
+            $c = curl_init();
+
+            curl_setopt($c, CURLOPT_URL, $wsUrl);
+            curl_setopt($c, CURLOPT_POST, 1);
+            curl_setopt($c, CURLOPT_POSTFIELDS, $qs);
+            curl_setopt($c, CURLOPT_CONNECTTIMEOUT, 30);
+            curl_setopt($c, CURLOPT_TIMEOUT, 60);
+            curl_setopt($c, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($c, CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($c, CURLOPT_SSL_VERIFYPEER, 0);
+
+            $o = curl_exec($c);
+
+            $curl_error = curl_error($c);
+            $curl_errno = curl_errno($c);
+            $http_code = curl_getinfo($c, CURLINFO_HTTP_CODE);
+
+            curl_close($c);
+            $verify_response = json_decode($o, true);
+
+            if (is_array($verify_response) && isset($verify_response['Status']) && $verify_response['Status'] == 'Success' && !empty($verify_response['URL'])) {
+
+                $link_expiry = date('Y-m-d H:i:s',strtotime('+30 minutes'));
+                $PaymentHistory = new PaymentHistory([
+                    'order_id' => $OrderMasterNew->order_id,
+                    'vendor_id' => $OrderMasterNew->vendor_id,
+                    'user_id' => $OrderMasterNew->customer_id,
+                    'payment_method' => 'hdfc',
+                    'transaction_id' => $txn_id,
+                    'amount' => $OrderMasterNew->total_order_price,
+                    'product_info' => parent::cleanString($OrderMasterNew->service_name),
+                    'first_name' => $OrderMasterNew->customer_name,
+                    'email' => $OrderMasterNew->customer_email,
+                    'phone' => $OrderMasterNew->customer_phone,
+                    'address1' => $OrderMasterNew->customer_address1,
+                    'city' => $OrderMasterNew->customer_city,
+                    'state' => $OrderMasterNew->customer_state,
+                    'country' => $OrderMasterNew->customer_country,
+                    'zipcode' => $OrderMasterNew->customer_zipcode,
+                    'udf1' => $OrderMasterNew->invoice_id,
+                    'udf2' => $OrderMasterNew->vendor_id,
+                    'udf3' => $OrderMasterNew->vendor_name,
+                    'udf4' => $OrderMasterNew->service_type,
+                    'status' => 'pending'
+                ]);
+
+                if (!$PaymentHistory->save()) {
+                    OrderMaster::find($OrderMasterId)->delete();
+                    Session::flash('success','Unable to save payment details. Please try again.');
+                    return Redirect::to('caravan-offline-order');
+                }
+                $OrderMasterNew->offline_short_url = $verify_response['URL'];
+                $OrderMasterNew->offline_long_url = $verify_response['URL'];
+                $OrderMasterNew->offline_link_expiry = $link_expiry;
+                $OrderMasterNew->payment_id = $PaymentHistory->id;
+                $OrderMasterNew->transaction_id = $txn_id;
+                $OrderMasterNew->hdfc_key = $HDFC_KEY;
+                $OrderMasterNew->hdfc_salt = $HDFC_SALT;
+                $OrderMasterNew->paytm_mid = $MERCHANT_ID;
+                $OrderMasterNew->save();
+            } else {
+                OrderMaster::find($OrderMasterId)->delete();
+                Session::flash('success','Sorry!, Could not place order due to a technical issue in generating payment link. Please try again.');
+
+                return Redirect::to('caravan-offline-order');
+            }
+        }
+
+        $OrderDetailsData = [];
+        $count = 0;
+
+        foreach ($service_details as $index => $val) {
+            $routeStart = new DateTime($val['date']['startDate']);
+            $routeEnd = new DateTime($val['date']['endDate']);
+            $durationSeconds = $routeEnd->getTimestamp() - $routeStart->getTimestamp();
+            $billableDays = max(1, (int) ceil($durationSeconds / 86400));
+            $routePrice = $dailyPrice * $billableDays * $serviceQuantity;
+
+            $route_coupon = 0;
+
+            if ($total_service_price > 0 && $coupon_amt > 0) {
+                $route_coupon = round($coupon_amt * ($routePrice / $total_service_price),2);
+            }
+            $routeFinalPrice = max(0, $routePrice - $route_coupon);
+            $OrderDetailsData[$count] = [
+                'order_id' => $booking_id,
+                'order_master_id' => $OrderMasterId,
+                'service_type' => 'caravan',
+                'service_name' => $MasterCar->title,
+                'service_name_id' => $MasterCar->id,
+                'service_city' => $MasterCar->city,
+                'start_date' => $routeStart->format('Y-m-d'),
+                'end_date' => $routeEnd->format('Y-m-d'),
+                'start_time' => $routeStart->format('H:i:s'),
+                'end_time' => $routeEnd->format('H:i:s'),
+                'pickup_address' => $val['pickup_point'],
+                'pickup_city' => $val['pickup_city'],
+                'drop_address' => $val['drop_point'],
+                'drop_city' => $val['drop_city'],
+                'service_item_quantity' => $serviceQuantity,
+                'service_item_price' => ceil($routePrice),
+                'unit_total_price' => ceil($routePrice),
+                'coupon_amount' => ceil($route_coupon),
+                'tax_percentage' => 0,
+                'tax_amount' => 0,
+                'total_room_price' => ceil($routeFinalPrice),
+                'status' => $status
+            ];
+
+            $count++;
+        }
+
+        OrderDetail::insert($OrderDetailsData);
+
+        foreach ($inventoryDates as $checkDate) {
+
+            $MasterInventory = CaravanMasterInventory::where([
+                'date' => $checkDate,
+                'caravan_id' => $MasterCar->id
+            ])->first();
+
+            if (empty($MasterInventory) || $MasterInventory->total_available < 1) {
+                Session::flash('success','Unable to create order. Inventory is not available for ' .
+                    date('d-m-Y', strtotime($checkDate)) . '.');
+                return Redirect::to('caravan-offline-order');
+            }
+
+            $MasterInventory->total_available -= 1;
+            $MasterInventory->total_booked += 1;
+
+            if ($status == 'pending') {
+                $MasterInventory->total_offline_pending += 1;
+            } else {
+                $MasterInventory->total_offline_completed += 1;
+            }
+            $MasterInventory->save();
+        }
+
+
+        if (!empty($request->coupon_code)) {
+            $Coupon = Coupon::where('coupon_code', $request->coupon_code)->first();
+            if (!empty($Coupon)) {
+                $Coupon->already_used = $Coupon->already_used + 1;
+                $Coupon->save();
+            }
+        }
+
+        $Vendor = User::find($OrderMasterNew->vendor_id);
+        $RentalInvoice = EmailTemplate::where('ref_code', 'rentalInvoice')->first();
+
+        if (!empty($RentalInvoice)) {
+            $Subject = $RentalInvoice->subject . ' - ' . $OrderMasterNew->service_name . ' - Booking ID - ' . $OrderMasterNew->invoice_id;
+
+            $check_date = date('d M Y', strtotime($OrderMasterNew->start_date)) . ' ' . date('h:i a', strtotime($OrderMasterNew->start_time)) . ' - <br>' . date('d M Y', strtotime($OrderMasterNew->end_date)) . ' ' . date('h:i a', strtotime($OrderMasterNew->end_time));
+
+            $vendorGSTNo = 'N/A';
+            $vendorRegdCompany = 'N/A';
+            $customerGSTNo = '';
+            $customerGSTCompany = '';
+            $OrderDetails = OrderDetail::where('order_master_id',$OrderMasterNew->id)->get();
+            $routes = '';
+            $route_confirm = '';
+            $count = 1;
+
+            foreach ($OrderDetails as $route) {
+                $routes .= '<tr>
+                    <td align="center" valign="middle" style="color:#000;border-right:1px solid #000; border-bottom:1px solid #000">' .
+                        $OrderMasterNew->invoice_id .
+                    '</td>
+                    <td align="center" valign="middle" style="color:#000;border-right:1px solid #000; border-bottom:1px solid #000">' .
+                        $OrderMasterNew->service_name .
+                    '</td>
+                    <td align="center" valign="middle" style="color:#000;border-right:1px solid #000; border-bottom:1px solid #000">' .
+                        date('d M Y h:i a', strtotime($route->start_date . ' ' . $route->start_time)) .
+                        ' - <br>' .
+                        date('d M Y h:i a', strtotime($route->end_date . ' ' . $route->end_time)) .
+                    '</td>
+                    <td align="center" valign="middle" style="color:#000;border-right:1px solid #000; border-bottom:1px solid #000">' .
+                        (isset($service_details[$count - 1]['day_km']) ? $service_details[$count - 1]['day_km'] : 0) .
+                        ' KM
+                    </td>
+                    <td align="right" valign="middle" style="color:#000;border-right:1px solid #000; border-bottom:1px solid #000">' .
+                        number_format($route->unit_total_price, 2) .
+                    '</td>
+                </tr>';
+
+                $route_confirm .= '<tr>
+                    <td width="10%" rowspan="3">' . $count . '</td>
+                    <td><strong>Pick up Location</strong>: ' .
+                        $route->pickup_address . ', ' . $route->pickup_city .
+                    '</td>
+                    <td><strong>Drop Location</strong>: ' .
+                        $route->drop_address . ', ' . $route->drop_city .
+                    '</td>
+                </tr>
+                <tr>
+                    <td><strong>Start Date</strong>: ' .
+                        date('d M Y h:i a', strtotime($route->start_date . ' ' . $route->start_time)) .
+                    '</td>
+                    <td><strong>End Date</strong>: ' .
+                        date('d M Y h:i a', strtotime($route->end_date . ' ' . $route->end_time)) .
+                    '</td>
+                </tr>
+                <tr>
+                    <td colspan="2"><strong>Distance</strong>: ' .
+                        (isset($service_details[$count - 1]['day_km']) ? $service_details[$count - 1]['day_km'] : 0) .
+                        ' KM
+                    </td>
+                </tr>
+                <tr><td colspan="3">&nbsp;</td></tr>';
+
+                $count++;
+            }
+
+            $txn_id = !empty($OrderMasterNew->transaction_id) ? $OrderMasterNew->transaction_id : 'N/A';
+            $discount = !empty($OrderMasterNew->coupon_amount) ? $OrderMasterNew->coupon_amount : '0.00';
+            $tspinword = parent::AmountInWords($OrderMasterNew->total_order_price);
+            $Message = str_replace(
+                [
+                    '~otdcLogo~',
+                    '~username~',
+                    '~usermobile~',
+                    '~usermail~',
+                    '~useraddress~',
+                    '~usergstno~',
+                    '~usergstcompany~',
+                    '~vendorgst~',
+                    '~vendorgstcompany~',
+                    '~vendorLogo~',
+                    '~orderdate~',
+                    '~orderdetails~',
+                    '~totalserviceprice~',
+                    '~couponname~',
+                    '~couponamount~',
+                    '~subtotal~',
+                    '~gst~',
+                    '~ordertotal~',
+                    '~paymentmethod~',
+                    '~txnid~',
+                    '~tspinword~',
+                    '~guidecharge~',
+                    '~payuid~'
+                ],
+                [
+                    $this->site,
+                    $OrderMasterNew->customer_name,
+                    $OrderMasterNew->customer_phone,
+                    $OrderMasterNew->customer_email,
+                    $OrderMasterNew->customer_address1,
+                    $customerGSTNo,
+                    $customerGSTCompany,
+                    $vendorGSTNo,
+                    $vendorRegdCompany,
+                    $this->site . $Vendor->photo,
+                    date('d M Y h:i a', strtotime($OrderMasterNew->created_at)),
+                    $routes,
+                    $OrderMasterNew->total_service_price,
+                    $OrderMasterNew->coupon_name,
+                    $discount,
+                    0,
+                    0,
+                    $OrderMasterNew->total_order_price,
+                    strtoupper($OrderMasterNew->payment_gateway),
+                    $txn_id,
+                    $tspinword,
+                    0,
+                    'N/A'
+                ],
+                $RentalInvoice->source
+            );
+
+            if ($request->payment_gateway == 'cash' || $request->payment_gateway == 'cheque') {
+                $ConfirmTemplate = EmailTemplate::where('ref_code','rentalConfirmMail')->first();
+
+                if (!empty($ConfirmTemplate)) {
+                    $SubjConfirm = $ConfirmTemplate->subject . ' - ' . $OrderMasterNew->service_name . ' - Booking ID - ' . $OrderMasterNew->invoice_id;
+                    $msg = str_replace([
+                            '~vendorLogo~',
+                            '~username~',
+                            '~servicename~',
+                            '~orderdetail~',
+                            '~ordertotal~',
+                            '~txnid~',
+                            '~paymentmethod~',
+                            '~termsconditions~',
+                            '~guideservice~',
+                            '~invoiceid~'
+                        ],
+                        [
+                            $this->site . $Vendor->photo,
+                            $OrderMasterNew->customer_name,
+                            $OrderMasterNew->service_name,
+                            $route_confirm,
+                            $OrderMasterNew->total_order_price,
+                            $OrderMasterNew->transaction_id,
+                            strtoupper($OrderMasterNew->payment_gateway),
+                            $CarDetails->terms_conditions,
+                            '',
+                            $OrderMasterNew->invoice_id
+                        ],
+                        $ConfirmTemplate->source
+                    );
+
+                    $OrderMasterNew->confimation_voucher = $msg;
+
+                    $msg .= '<div style="margin-top:30px;text-align:center;">
+                        <p style="font-family: Segoe UI;color:#333;">
+                            Feel free to <a href="https://www.bookodisha.com/tourism/contact">contact us</a>
+                            for any further questions or clarifications
+                        </p>
+                        <p style="font-family: Segoe UI;color:#333;">
+                            <b>bookodisha.com support team</b>
+                        </p>
+                        <p style="font-family: Segoe UI;font-size:11px;color:#999;margin: 0px !important;">
+                            Please do not reply to this message. This email address is automated for delivering outbound messages.
+                            <br>
+                            Please check the web site for more information
+                            <a href="https://www.bookodisha.com/" target="_blank">www.bookodisha.com</a>
+                            <br>
+                            Copyright &copy; 2022 Odisha Tourism. All rights reserved.
+                        </p>
+                    </div>';
+
+                    Mail::to($OrderMasterNew->customer_email)->send(new \App\Mail\RegistrationMailUser($msg, $SubjConfirm));
+                }
+
+                $sms_txt = '';
+                $sms_txt_admin = '';
+                $manager_contact = '';
+
+                $SmsTemplate = SmsTemplate::where('ref_code','BookingConfirmUser')->first();
+
+                if (!empty($SmsTemplate)) {
+
+                    $var3 = $var5 = $var7 = '';
+                    $var1 = $OrderMasterNew->customer_name;
+                    $var2 = $OrderMasterNew->invoice_id;
+                    $var4 = $OrderMasterNew->service_name;
+                    $var4 = (strlen($var4) > 30) ? substr(utf8_encode($var4), 0, 27) . '...' : $var4;
+                    $var6 = "\n" . $OrderMasterNew->vendor_name;
+                    $var8 = "\n\n";
+                    $var5 = date('d M Y', strtotime($OrderMasterNew->start_date)) . ' to ' . date('d M Y', strtotime($OrderMasterNew->end_date));
+                    $var7 = $CarDetails->contact_number;
+                    $manager_contact = $CarDetails->contact_number;
+                    $sms_txt = str_replace(
+                        [
+                            '~var1~',
+                            '~var2~',
+                            '~var3~',
+                            '~var4~',
+                            '~var5~',
+                            '~var6~',
+                            '~var7~',
+                            '~var8~'
+                        ],
+                        [
+                            $var1,
+                            $var2,
+                            $var3,
+                            $var4,
+                            $var5,
+                            $var6,
+                            $var7,
+                            $var8
+                        ],
+                        $SmsTemplate->source
+                    );
+
+                    parent::sendSms($OrderMasterNew->customer_phone,$sms_txt,$SmsTemplate->templete_id);
+                }
+
+                $SmsTemplateAdmin = SmsTemplate::where('ref_code','BookingConfirmPackageRental')->first();
+                if (!empty($SmsTemplateAdmin)) {
+                    $var1 = $OrderMasterNew->service_name;
+                    $var1 = (strlen($var1) > 30) ? substr(utf8_encode($var1), 0, 27) . '...' : $var1;
+
+                    $var2 = $OrderMasterNew->customer_name;
+                    $var3 = $OrderMasterNew->customer_phone;
+                    $var4 = date('d M Y', strtotime($OrderMasterNew->start_date));
+                    $var5 = date('d M Y', strtotime($OrderMasterNew->end_date));
+                    $var6 = $OrderMasterNew->invoice_id;
+
+                    $sms_txt_admin = str_replace(
+                        [
+                            '~var1~',
+                            '~var2~',
+                            '~var3~',
+                            '~var4~',
+                            '~var5~',
+                            '~var6~'
+                        ],
+                        [
+                            $var1,
+                            $var2,
+                            $var3,
+                            $var4,
+                            $var5,
+                            $var6
+                        ],
+                        $SmsTemplateAdmin->source
+                    );
+
+                    $sms_recipient = [];
+
+                    if (!empty($manager_contact)) {
+                        $sms_recipient[] = $manager_contact;
+                    }
+
+                    if (!empty($CarDetails->additional_phone)) {
+                        $sms_recipient = array_merge($sms_recipient,explode(',', $CarDetails->additional_phone));
+                    }
+
+                    if (!empty($sms_recipient)) {
+                        $to_sms = implode(',', array_slice($sms_recipient, 0, 3));
+                        parent::sendSms($to_sms,$sms_txt_admin,$SmsTemplateAdmin->templete_id);
+                    }
+                }
+            } else {
+                $Message = str_replace(
+                    'This is an electronically generated invoice, hence does not require a signature.',
+                    'This is an estimated invoice for payment. You will get a confirmation voucher and invoice after payment.',
+                    $Message
+                );
+
+                $extraMsg = 'Dear ' . $OrderMasterNew->customer_name .
+                    ',<br><br> Please <a href="' . $OrderMasterNew->offline_short_url .
+                    '"><strong>click here</strong></a> to complete the payment for booking ' .
+                    $OrderMasterNew->invoice_id .
+                    ' of amount Rs. ' . $OrderMasterNew->total_order_price;
+
+                $extraMsg .= '<br><br>If the above link is not working, please go through the following url for payment. <br><br>' .
+                    $OrderMasterNew->offline_long_url;
+
+                $extraMsg .= '<br><br><strong>Note: Please complete the payment as soon as possible.<br>The provisional invoice for your booking is as follows.</strong><br><br>';
+
+                $Message = $extraMsg . $Message;
+
+                $Subject = 'Payment link for - ' . $OrderMasterNew->service_name . ' - Booking ID - ' .$OrderMasterNew->invoice_id;
+            }
+
+            $service_mail = $CarDetails->contact_email;
+
+            if (!empty($CarDetails->additional_email)) {
+                $service_mail = !empty($service_mail) ? $service_mail . ',' . $CarDetails->additional_email : $CarDetails->additional_email;
+            }
+
+            $OrderMasterNew->invoice = $Message;
+            $OrderMasterNew->save();
+
+            $Message .= '<div style="margin-top:30px;text-align:center;">
+                <p style="font-family: Segoe UI;color:#333;">
+                    Feel free to <a href="https://www.bookodisha.com/tourism/contact">contact us</a>
+                    for any further questions or clarifications
+                </p>
+                <p style="font-family: Segoe UI;color:#333;">
+                    <b>bookodisha.com support team</b>
+                </p>
+            </div>';
+
+            $receipent = [$Vendor->email];
+
+            if (!empty($service_mail)) {
+                $receipent = array_merge(
+                    $receipent,
+                    explode(',', $service_mail)
+                );
+            }
+
+            if (Auth::user()->user_role == 'agent_staff') {
+                Mail::to($receipent)->send(new \App\Mail\RegistrationMailUser($Message, $Subject));
+            } else {
+                Mail::to($OrderMasterNew->customer_email)
+                    ->bcc($receipent)
+                    ->send(new \App\Mail\RegistrationMailUser($Message, $Subject));
+            }
+        }
+
+        Session::flash('success', 'Order created successfully.');
+        return Redirect::to('caravan-offline-order');
     }
 }

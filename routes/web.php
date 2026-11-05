@@ -207,7 +207,14 @@ Route::group(['middleware' => ['auth', 'rental']], function() {
     Route::get('manage-caravan-inventory', 'CaravanController@manageCaravanInventory')->name('manage-caravan-inventory');
     Route::get('caravan-availability', 'CaravanController@caravanAvailability')->name('caravan-availability');
     Route::post('caravanOprsn', 'CaravanController@caravanOprsn')->name('caravanOprsn');
+ 
 
+    // Caravan Orders
+    Route::get('caravan-orders', 'CaravanController@caravanOrders')->name('caravan-orders');
+    Route::post('get-caravan-orders', 'CaravanController@getCaravanOrders')->name('get-caravan-orders');
+ 
+    Route::get('caravan-offline-order', 'CaravanController@caravanOfflineOrder')->name('caravan-offline-order');
+    Route::post('create-caravan-order', 'CaravanController@createCaravanOrder')->name('create-caravan-order');
 
     /* BLOCK CARAVAN MODULE */
     Route::get('caravan-block-data', 'CaravanController@caravanBlockData')->name('caravan-block-data');
