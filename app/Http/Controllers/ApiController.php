@@ -4136,7 +4136,7 @@ class ApiController extends Controller {
                         $TourData->max_people_per_booking = 2;
                     }
                     elseif ($TourData->id == '32' || $TourData->id == '33' || $TourData->id == '68') {
-                        $TourData->end_date = "2025-12-05";
+                        $TourData->end_date = "2026-12-05";
                         // $TourData->max_people_per_booking = 2;
                     }elseif ($TourData->id == '57' || $TourData->id == '58' || $TourData->id == '59') {
                         $TourData->end_date = "2025-01-13";
